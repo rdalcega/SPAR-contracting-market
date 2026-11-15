@@ -61,6 +61,7 @@ def forbid_network(monkeypatch):
 def cfg():
     return {
         "credits_per_usd": 1,
+        "message_channels": "off",
         "turns": {"max_actions": 6, "memory_chars": 2000},
         "compute": {
             "cpu_s": 5,
@@ -600,7 +601,7 @@ def test_reply_charges_multiply_then_round_ties_to_even(
     r = reply([], cost=usd, finish="length")
     if correction:
         backend = Backend([r])
-        chain = turns.correct([{"role": "user", "content": "body"}], backend, cfg)
+        chain = turns.correct([{"role": "user", "content": "body"}], backend, cfg, "buyer")
     else:
         chain, _, _ = decide(cfg, [r])
     assert chain.steps[0]["charge"] == expected
@@ -718,7 +719,7 @@ def test_model_exceptions_other_than_callfailed_propagate(cfg, correction, kind)
     backend = Backend([error])
     with pytest.raises(type(error)) as caught:
         if correction:
-            turns.correct([], backend, cfg)
+            turns.correct([], backend, cfg, "buyer")
         else:
             turns.decide("s", "v", backend, cfg, 100, False, Programs())
     assert caught.value is error
@@ -982,7 +983,7 @@ def test_correct_always_makes_exactly_one_forced_act_only_call(cfg, calls):
     before = copy.deepcopy(messages)
     r = reply(calls, cost=0.125, finish="length")
     backend = Backend([r])
-    chain = turns.correct(messages, backend, cfg)
+    chain = turns.correct(messages, backend, cfg, "buyer")
     assert chain.messages is messages
     assert messages == before
     assert chain.reply is r
@@ -1003,7 +1004,7 @@ def test_correct_provider_failure_has_no_step_or_charge(cfg):
     messages = [{"role": "user", "content": "body"}]
     failure = exception_of(models.CallFailed, "failed correction", 2.5)
     backend = Backend([failure])
-    chain = turns.correct(messages, backend, cfg)
+    chain = turns.correct(messages, backend, cfg, "buyer")
     assert chain.messages is messages
     assert chain.steps == []
     assert chain.reply is None
@@ -1155,6 +1156,6 @@ def test_correction_acceptance_example(cfg):
     messages = turns.correction_messages(chain, {"error": None}, body)
     assert messages[1:] == expected
     backend = Backend([reply([call()])])
-    corrected = turns.correct(messages, backend, cfg)
+    corrected = turns.correct(messages, backend, cfg, "buyer")
     assert backend.snapshots[0]["messages"][1:] == expected
     assert_requests(corrected, backend, [FORCED], correction=True)

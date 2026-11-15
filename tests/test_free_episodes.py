@@ -218,7 +218,7 @@ def test_every_request_is_rebuilt_from_the_log(free):
         for seed in SEEDS:
             log = list(records(free["root"] / mode / f"seed_{seed}"))
             assert [r["type"] for r in log[:2]] == ["fresh_start", "functions"]
-            assert log[1]["functions"] == turns.functions(config.resolve({"message_channels": mode}))
+            assert log[1]["functions"] == turns.role_functions(config.resolve({"message_channels": mode}))
             assert sum(r["type"] == "functions" for r in log) == 1
             calls = [r for r in log if r["type"] == "call"]
             assert len(calls) > 100 and not any(r["type"] == "call_failed" for r in log)

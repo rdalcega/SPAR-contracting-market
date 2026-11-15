@@ -5,6 +5,7 @@ does at a real price, or fails every call. A stand-in answers the mock's program
 runs whole default episodes with the real sandbox.
 """
 
+import copy
 import dataclasses
 import json
 import os
@@ -727,7 +728,8 @@ def test_a_checkpoint_after_every_completed_day_and_none_inside_a_day(command, t
     def spy(m, where):
         save(m, where)
         lines = len((path / "log.jsonl").read_text().splitlines())
-        layout, text, held = pickle.loads((path / "checkpoint.pickle").read_bytes())
+        layout, text, held, defined = pickle.loads((path / "checkpoint.pickle").read_bytes())
+        assert defined == turns.role_functions(m.cfg)
         saved.append((m.days_completed, m.day, held.days_completed, held.records == m.records == lines,
                       held.cfg, held.log, json.loads(text) == m.cfg and layout == run.LAYOUT, m.deferred))
 
@@ -811,14 +813,15 @@ def test_a_stopped_episode_resumes_from_its_last_completed_day(command, tmp_path
     assert [r["n"] for r in log] == list(range(1, len(log) + 1))
     assert [r["type"] for r in log].count("system_prompt") == 5  # a prompt already logged is not logged again
     # nor are the function definitions, which the fresh start logged once (6.3 D)
-    definitions = turns.functions(config.resolve({**FAST, "message_channels": "all"}))
+    definitions = turns.role_functions(config.resolve({**FAST, "message_channels": "all"}))
     assert [r for r in log if r["type"] == "functions"] == [
         {"n": 2, "type": "functions", "day": 0, "round": None, "functions": definitions}]
     calls = [r for r in log if r["type"] == "call"]
     assert {tuple(r["request"]["functions"]) for r in calls} == {("compute", "act"), ("act",)}
+    role = {p["id"]: p["role"] for p in log[0]["participants"]}
     for r in calls:  # each call names its functions, and continues the call before it of the same turn
         prior, full = r["request"]["prior"], rounds.request(log, r)
-        assert full["functions"] == definitions[-len(r["request"]["functions"]):]
+        assert full["functions"] == definitions[role[r["participant"]]][-len(r["request"]["functions"]):]
         assert [x["role"] for x in full["messages"][:2]] == ["system", "user"]
         assert (prior is None) == (r["step"] == 1 and r["call"] == "decide")
         assert prior is None or [log[prior - 1][k] for k in ("type", "participant", "day", "round")] == [
@@ -996,15 +999,20 @@ def checkpoint(tmp_path, raw, seed=0):
 def test_load_without_a_checkpoint_or_with_one_that_cannot_be_read(tmp_path):
     cfg = config.resolve(FAST)
     assert run.load(str(tmp_path), 0, cfg) is None
-    m = episode.start(0, cfg)
-    for data in (b"", b"junk", pickle.dumps("text"), pickle.dumps((run.LAYOUT, "{}", m)),
-                 pickle.dumps((run.LAYOUT, "{", m)), pickle.dumps((json.dumps(cfg), m)),
-                 pickle.dumps((run.LAYOUT, json.dumps(cfg), "no market")),
-                 pickle.dumps((run.LAYOUT, json.dumps({"seeds": [0]}), m)),
-                 pickle.dumps(({**run.LAYOUT, "Task": ["id"]}, json.dumps(cfg), m))):  # the state held differently
+    m, defined = episode.start(0, cfg), turns.role_functions(cfg)
+    legacy = defined["buyer"][:1] + [copy.deepcopy(defined["buyer"][1])]
+    legacy[1]["function"]["parameters"]["properties"]["actions"]["items"] = {"type": "object"}
+    for data in (b"", b"junk", pickle.dumps("text"), pickle.dumps((run.LAYOUT, "{}", m, defined)),
+                 pickle.dumps((run.LAYOUT, "{", m, defined)), pickle.dumps((json.dumps(cfg), m, defined)),
+                 pickle.dumps((run.LAYOUT, json.dumps(cfg), "no market", defined)),
+                 pickle.dumps((run.LAYOUT, json.dumps({"seeds": [0]}), m, defined)),
+                 pickle.dumps(({**run.LAYOUT, "Task": ["id"]}, json.dumps(cfg), m, defined)),  # state held otherwise
+                 pickle.dumps((run.LAYOUT, json.dumps(cfg), m)),  # a checkpoint from before act named the actions
+                 pickle.dumps((run.LAYOUT, json.dumps(cfg), m, legacy)),  # one list for both roles, other definitions
+                 pickle.dumps((run.LAYOUT, json.dumps(cfg), m, {**defined, "manager": defined["buyer"]}))):
         (tmp_path / "checkpoint.pickle").write_bytes(data)
         assert run.load(str(tmp_path), 0, cfg) == "unreadable"
-    (tmp_path / "checkpoint.pickle").write_bytes(pickle.dumps((run.LAYOUT, json.dumps(cfg), m)))
+    (tmp_path / "checkpoint.pickle").write_bytes(pickle.dumps((run.LAYOUT, json.dumps(cfg), m, defined)))
     assert run.load(str(tmp_path), 0, cfg) == m
     assert run.load(checkpoint(tmp_path, FAST), 0, cfg).days_completed == 3
     assert run.load(checkpoint(tmp_path, FAST), 1, cfg) == "another seed"

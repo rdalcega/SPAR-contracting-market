@@ -186,7 +186,7 @@ def test_fresh_start_record():
     m.log = [].append
     episode.fresh_start(m)
     record, functions = m.log.__self__
-    assert functions == {"n": 2, "type": "functions", "day": 0, "round": None, "functions": turns.functions(cfg)}
+    assert functions == {"n": 2, "type": "functions", "day": 0, "round": None, "functions": turns.role_functions(cfg)}
     assert (record["n"], record["type"], record["day"], record["round"]) == (1, "fresh_start", 0, None)
     assert (record["name"], record["seed"], record["message_channels"]) == ("pilot", 5, "managers")
     assert record["last_arrival_day"] == m.last_arrival

@@ -38,7 +38,7 @@ def fresh_start(m):
              for p in m.participants.values()]
     state.emit(m, "fresh_start", name=cfg["name"], seed=m.seed, message_channels=cfg["message_channels"],
                participants=seats, last_arrival_day=m.last_arrival)
-    state.emit(m, "functions", functions=turns.functions(cfg))
+    state.emit(m, "functions", functions=turns.role_functions(cfg))
 
 
 # 3. The start of a day

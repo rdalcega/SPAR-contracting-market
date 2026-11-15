@@ -17,7 +17,7 @@ import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from . import __version__, config, episode, models, rounds, sandbox, state
+from . import __version__, config, episode, models, rounds, sandbox, state, turns
 from .fmt import F
 
 RUN_SETTINGS = ("seeds", "parallel_episodes", "cost_cap_usd", "output_dir", "name")  # config.md, 3.1
@@ -57,9 +57,10 @@ LAYOUT = {name: [field.name for field in dataclasses.fields(kind)]  # how this v
 
 def save(m, folder):
     """The checkpoint of a completed day (5): how the state is held, the config it is written for as JSON text,
-    and the market without its config, pickled together and replaced atomically."""
+    the market without its config, and the function definitions its calls are offered (the texts a resume must
+    send unchanged), pickled together and replaced atomically."""
     _replace(os.path.join(folder, "checkpoint.pickle"),
-             pickle.dumps((LAYOUT, json.dumps(m.cfg), dataclasses.replace(m, cfg=None))))
+             pickle.dumps((LAYOUT, json.dumps(m.cfg), dataclasses.replace(m, cfg=None), turns.role_functions(m.cfg))))
 
 
 def _compared(cfg):
@@ -88,14 +89,14 @@ def _same(a, b):
 
 def load(folder, seed, cfg):
     """The market of the episode's checkpoint, restored under this run's config (5). None when the episode has
-    no checkpoint; why it is not used when it cannot be read (one that holds the state differently included) or
-    was written for another seed or config."""
+    no checkpoint; why it is not used when it cannot be read (one that holds the state or offers the functions
+    differently included) or was written for another seed or config."""
     path = os.path.join(folder, "checkpoint.pickle")
     if not os.path.exists(path):
         return None
     try:
         with open(path, "rb") as f:
-            layout, text, m = pickle.load(f)
+            layout, text, m, defined = pickle.load(f)
         same = _same(_compared(json.loads(text)), _compared(cfg))
         other_seed = m.seed != seed
     except Exception:
@@ -104,6 +105,8 @@ def load(folder, seed, cfg):
         return "unreadable"
     if other_seed or not same:
         return "another seed" if other_seed else "another config"
+    if defined != turns.role_functions(cfg):  # written by a version that offers the functions differently, such
+        return "unreadable"  # as one from before act named the actions (SPEC_QUESTIONS Q117)
     m.cfg = cfg
     return m
 

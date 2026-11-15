@@ -49,10 +49,14 @@ def request(records, record):
     record of position n at records[n - 1] (running.md, 6.3 D). Messages: the participant's system prompt (its
     system_prompt record), the first `kept` messages after the system message of the call record at `prior`
     (rebuilt the same way; none when `prior` is None), then its own `messages`. Functions: those it names, as
-    the log's functions record defines them. The tool choice is the record's."""
+    the log's functions record defines them for the participant's role (a log written before act's schema named
+    each role's actions holds one list for both). The tool choice is the record's."""
     pid = record["participant"]
     system = next(r["text"] for r in records if r["type"] == "system_prompt" and r["participant"] == pid)
     defined = next(r["functions"] for r in records if r["type"] == "functions")
+    if isinstance(defined, dict):
+        start = next(r for r in records if r["type"] == "fresh_start")
+        defined = defined[next(p["role"] for p in start["participants"] if p["id"] == pid)]
 
     def rest(logged):
         earlier = [] if logged["prior"] is None else rest(records[logged["prior"] - 1]["request"])
@@ -192,7 +196,8 @@ def play(m, order, ctx):
     corrected, memories = {}, {}  # the lines and the memory of each correction that was read
     if due:  # 8.4, 8.6
         after = copy.deepcopy(m)
-        calls = _wave(m, ctx, list(due), lambda pid: turns.correct(due[pid][1], ctx.backends[pid], cfg),
+        calls = _wave(m, ctx, list(due),
+                      lambda pid: turns.correct(due[pid][1], ctx.backends[pid], cfg, people[pid].role),
                       "correction", last)
         for pid, chain in calls.items():
             state.count(m, f"{people[pid].role}_corrections")
