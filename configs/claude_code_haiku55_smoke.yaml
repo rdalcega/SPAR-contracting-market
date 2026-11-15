@@ -1,0 +1,19 @@
+# Smoke run on a Claude subscription: every seat and the summarizer on Claude Haiku 5.5 through Claude Code
+# (provider claude_code, market/claude_code.py), all message channels on. Needs CLAUDE_CODE_OAUTH_TOKEN (from
+# `claude setup-token`) in the environment or .env. Claude Code sets no temperature, so it is null. The prices are
+# the API's: they set the participants' token charges and the cost cap, not what the subscription bills.
+seeds: [0]
+parallel_episodes: 1
+cost_cap_usd: 5
+name: claude_code_haiku55_smoke
+message_channels: all
+models:
+  buyers: &haiku
+    provider: claude_code
+    model: claude-haiku-5-5
+    price_in_per_m: 0.10
+    price_out_per_m: 0.50
+    temperature: null
+    extra_body: {reasoning: {effort: medium}}
+  managers: *haiku
+  summarizer: *haiku

@@ -177,6 +177,7 @@ def run_episode(cfg, seed, folder, tracker):
         return end("error", f"the log does not match the checkpoint: it does not hold the checkpoint's "
                             f"{m.records} records, complete and readable (start afresh with --force)")
     settling = False
+    backends = {}
     with log:
         try:
             if resumed:
@@ -218,6 +219,9 @@ def run_episode(cfg, seed, folder, tracker):
             status, error = stop.status, stop.error
         except Exception:  # 4.3
             status, error = "error", ("settlement failure: " if settling else "") + traceback.format_exc()
+        finally:  # a backend with live sessions (provider claude_code) ends them with the episode
+            for b in (*backends.values(), summarizer):
+                getattr(b, "close", lambda: None)()
         state.emit(m, "stopped", status=status, error=error, days_completed=days)
     return end(status, error)
 

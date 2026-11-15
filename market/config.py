@@ -150,7 +150,9 @@ def _seeds(path, v):
 
 MODES = ("off", "managers", "buyers", "within_roles", "all")
 PROVIDERS = ("openrouter", "openai_compatible", "ollama", "mock")
+ADDED_PROVIDERS = ("claude_code",)  # models.md 3, "Another provider ... may be added": market/claude_code.py
 FREE_PROVIDERS = ("mock", "ollama")
+EFFORTS = ("low", "medium", "high", "xhigh", "max")  # Claude Code's --effort levels (provider claude_code)
 
 
 def _channels(path, v):
@@ -164,8 +166,8 @@ def _channels(path, v):
 
 def _provider(path, v):
     """`provider` (3.4.1): a name the implementation does not have is refused."""
-    if type(v) is not str or v not in PROVIDERS:
-        _fail(path, "must be one of " + ", ".join(PROVIDERS))
+    if type(v) is not str or v not in PROVIDERS + ADDED_PROVIDERS:
+        _fail(path, "must be one of " + ", ".join(PROVIDERS + ADDED_PROVIDERS))
     return v
 
 
@@ -339,6 +341,24 @@ _RUNS = (("employee", "fresh", "t_med"), ("employee", "refine", "t_ref_med"),
         ("manager", "fresh", "t_med"), ("manager", "refine", "t_ref_med"))
 
 
+def _claude_code(path, spec):
+    """A claude_code spec (market/claude_code.py): Claude Code sets no temperature and no base URL, and of
+    extra_body takes only the reasoning effort; a setting it would drop is refused rather than dropped."""
+    if spec["temperature"] is not None:
+        _fail(f"{path}.temperature", "must be null with provider claude_code (Claude Code sets no temperature; "
+                                     "llm.temperature applies when the spec gives none)")
+    if "base_url" in spec:
+        _fail(f"{path}.base_url", "is not used by provider claude_code")
+    if "api_key_env" in spec and spec["api_key_env"] is None:
+        _fail(f"{path}.api_key_env", "must name the variable of a Claude Code token with provider claude_code")
+    body = spec["extra_body"]
+    reasoning = body.get("reasoning")
+    if body and not (body.keys() == {"reasoning"} and type(reasoning) is dict and reasoning.keys() == {"effort"}
+                     and reasoning["effort"] in EFFORTS):
+        _fail(f"{path}.extra_body", "may hold only reasoning.effort with provider claude_code, one of "
+                                    + ", ".join(EFFORTS))
+
+
 def _check(cfg):
     """The rules across keys of 3.8 and section 4, and section 6's "Finiteness at load"."""
     low, high = cfg["money"]["share_range"]
@@ -393,6 +413,13 @@ def _check(cfg):
     if cfg["contracts"]["bid_window_rounds"] > cap * cfg["time"]["rounds_per_day"]:
         _fail("contracts.bid_window_rounds",
               f"must be <= the horizon cap x time.rounds_per_day ({cap * cfg['time']['rounds_per_day']})")
+
+    m = cfg["models"]
+    specs = [*((f"models.{k}", m[k]) for k in ("buyers", "managers", "summarizer")),
+             *((f"models.{seats}.{k}", s) for seats in ("buyer_seats", "manager_seats") for k, s in m[seats].items())]
+    for path, spec in specs:
+        if spec["provider"] == "claude_code":
+            _claude_code(path, spec)
 
     for role in ("buyer", "manager"):
         count = str(cfg["participants"][f"{role}s"])

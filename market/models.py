@@ -22,6 +22,7 @@ from .fmt import F, G, finite
 _PROVIDERS = {  # section 3: (base URL, API key variable) when the spec gives none, of the providers that have one
     "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
     "ollama": ("http://localhost:11434/v1", None),
+    "claude_code": (None, "CLAUDE_CODE_OAUTH_TOKEN"),  # market/claude_code.py: Claude Code on a subscription
 }
 _TITLE = "contracting-market"
 _RETRIED = (408, 409, 425, 429)
@@ -158,6 +159,9 @@ def backend(spec, llm, tracker, *, env=None, sleep=time.sleep, clock=time.time):
         return mock.backend(spec)
     if key and not (key.isascii() and key.isprintable()):
         raise SetupError(f"the value of {variable} holds characters a request cannot carry")
+    if spec["provider"] == "claude_code":
+        from . import claude_code
+        return claude_code.backend(spec, llm, tracker, key, sleep=sleep, clock=clock)
     return _Backend(spec, llm, tracker, base, key, sleep, clock)
 
 

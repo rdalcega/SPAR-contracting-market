@@ -104,6 +104,30 @@ def scripted(monkeypatch):
     return scripted
 
 
+def test_every_backend_is_closed_when_its_episode_ends(command, monkeypatch):
+    """A backend with a close method (provider claude_code's live sessions) is closed when its episode ends, ok or
+    stopped."""
+    made = []
+
+    class Closing(Scripted):
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    def backend(spec, llm, tracker):
+        made.append(Closing(spec, tracker, 0.01, True))
+        return made[-1]
+
+    monkeypatch.setattr(models, "backend", backend)
+    assert command(**PAID_SEATS) == 0
+    assert made and all(b.closed for b in made)
+    made.clear()
+    stop_at(monkeypatch, 1, 1)
+    command("--force", **PAID_SEATS)
+    assert made and all(b.closed for b in made)
+
+
 def folder(tmp_path, seed=0, out="out", name="fast"):
     return tmp_path / out / name / f"seed_{seed}"
 

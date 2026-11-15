@@ -1313,3 +1313,24 @@ GPT review of the design. Q30 is of the same family.
   set it, is for you to decide. The configs `configs/haiku55_medium_reasoning_all.yaml` and
   `configs/qwen35_9b_reasoning_all.yaml` take that override (tool_choice `auto` on every call of a turn), so
   they run a harness that differs from 4.1.
+
+### Q117. Provider claude_code cannot carry everything an adapter must carry
+- Where: `models.md`, section 3, last paragraph ("Another provider ... may be added behind the same interface"), with
+  2.1 (the call's inputs: messages, functions, tool_choice, temperature) and 2.3 (the messages carried back)
+- Quote: "Its adapter must take the inputs of 2.1, carry the messages of 2.3 (function calls, tool answers and, where
+  the API allows, reasoning) and return the fields of 2.2, with the same endings (2.4) and the same dollar-cost rule"
+- Case: the added provider `claude_code` (`market/claude_code.py`) runs each conversation in a live `claude -p`
+  session on a Claude subscription. Claude Code takes no `tool_choice`, no temperature, no change of tools once a
+  session has started and no rewritten earlier reply, and it adds text of its own. Measured with a logging proxy on
+  2026-11-15 (Claude Code 2.1.325, Haiku 5.5): the system prompt starts with "You are a Claude agent, built on
+  Anthropic's Claude Agent SDK."; a reminder before the view gives today's date; a system message after it gives the
+  working folder, platform, model name and a note on untrusted files; the functions are named `mcp__market__<name>`.
+  None of these has a switch that keeps subscription login (`--bare` does, but takes only an API key).
+- Reading taken: the provider is added with these departures, listed in the module's docstring: tool_choice is not
+  sent (so neither `"required"` nor a forced `act` is enforced, and a correction still shows `compute`); a spec must
+  give `temperature: null`, and `extra_body` may hold only `reasoning.effort`; on the text path (`turns.md` 11.4)
+  the model keeps its own reply and the body goes back as the result of its last pending call ("not run" for the
+  earlier ones) or as a user message; reasoning is Claude's thinking summary; cost is the tokens at the spec's
+  prices with cache tokens as plain input; a failure within a chain is not retried. One consequence runs against
+  Q116: with no forced tool_choice, Claude seats on `claude_code` do think, where the same model on OpenRouter does
+  not. Whether runs on this provider count as "the same market" for your purposes is for you to decide.
