@@ -1,0 +1,40 @@
+=== DAY 1, ROUND 1 of 3 today === You are B-c53 (buyer). Your balance: 163.20 credits.
+Participants - buyers: B-c53, B-d75; managers: M-14b, M-849, M-f8c.
+
+--- Results of your actions in your previous turn ---
+
+--- Notifications since your last turn ---
+
+[day 1] New task task-1 in your queue, worth 65 to you, due day 9 (8 days left). It brought 40.80 credits, added to your balance.
+
+[day 1] New task task-2 in your queue, worth 59 to you, due day 9 (8 days left). It brought 40.80 credits, added to your balance.
+
+--- Payments (yours and to you; the latest 8 are shown) ---
+
+--- Your accounts so far (credits) ---
+
+Spent: nothing.
+
+Received: per-task budgets 81.60.
+
+Held in escrow now: 0.00.
+
+--- Your record with each counterparty (all your contracts so far) ---
+
+--- Your tasks not yet contracted ---
+
+task-1 | worth 65 to you (on-time value to you at quality 5, 6, 7, 8, 9, 10: 12.8, 20.1, 28.9, 39.3, 51.4, 65.0) | due day 9 (8 days left) | QUEUED (not posted)
+
+task-2 | worth 59 to you (on-time value to you at quality 5, 6, 7, 8, 9, 10: 11.7, 18.2, 26.2, 35.7, 46.6, 59.0) | due day 9 (8 days left) | QUEUED (not posted)
+
+--- Your active contracts ---
+
+--- Your finished contracts ---
+
+--- Other buyers' open posts (for reference) ---
+
+--- Your self-written memory ---
+
+--- Final instructions ---
+
+Decide what to do now. compute can do the arithmetic for you. End your turn by calling act.

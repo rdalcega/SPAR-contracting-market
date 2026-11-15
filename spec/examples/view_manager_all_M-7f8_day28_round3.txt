@@ -1,0 +1,122 @@
+=== DAY 28, ROUND 3 of 3 today === You are M-7f8 (manager). Your balance: 141.48 credits.
+Participants - buyers: B-82c, B-b79; managers: M-0ed, M-ee6, M-7f8.
+
+--- Results of your actions in your previous turn ---
+
+Results of your actions:
+- send_message: OK: message sent to B-b79
+
+--- Notifications since your last turn ---
+
+--- Payments (yours and to you; the latest 8 are shown) ---
+
+(7 earlier not listed)
+
+[day 12, round 3] B-b79 -> you: 12 credits for contract-26
+
+[day 13, round 2] B-b79 -> you: 12 credits for contract-26
+
+[day 14, round 1] you -> B-b79: 12 credits
+
+[day 15, round 3] B-b79 -> you: 12 credits for contract-29
+
+[day 15, round 3] B-b79 -> you: 11 credits for contract-32
+
+[day 16, round 2] B-b79 -> you: 12 credits for contract-20
+
+[day 20, round 1] B-82c -> you: 12 credits for contract-41
+
+[day 22, round 3] B-b79 -> you: 12 credits for contract-31
+
+--- Messages ---
+
+Your conversation with M-0ed: (no messages yet)
+
+Your conversation with M-ee6: (no messages yet)
+
+Your conversation with B-82c:
+  [day 4, round 2] you -> B-82c: Hi, R-681 (contract-2) and R-099 (contract-1) have been delivered and are in use. Please pay the agreed prices (12.0 each) when you can. Thanks.
+
+  [day 5, round 3] you -> B-82c: Reminder: R-681 (contract-2) and R-099 (contract-1) are in use and unpaid (12 each). Please pay when you can. Thanks.
+
+  [day 8, round 3] you -> B-82c: Reminder from M-7f8: contract-1 (R-099) and contract-2 (R-681) are delivered, in use, and unpaid (12 each, 24 total). Please pay when you can. Thanks.
+
+  [day 9, round 1] you -> B-82c: Reminder from M-7f8: contract-1 (R-099) and contract-2 (R-681) are delivered and in use, 24 unpaid in total. Please pay so we can keep working together.
+
+  [day 22, round 2] B-82c -> you: From B-82c: contract-1 (R-099) and contract-2 (R-681) were both paid in full on day 10 (12 each, see payment log). Please check your side. contract-41 (R-55b) is also paid. Open escrows contract-47/48/49 are noted; I'll test and decide when you submit.
+
+Your conversation with B-b79:
+  Summary of the 10 earlier messages (written automatically; you are M-7f8 in it): M-7f8: - Asked B-b79 to pay 24 outstanding: contract-30 (R-4d3, 12) and contract-31 (R-063, 12, delivered day 17 on time, in use). - Will not start new runs for B-b79 until payments catch up. - Said contract-17 (R-54a) is in use, but did not argue it further. - Said contract-20 is also in use. B-b79: - Refused to pay contract-30 (R-4d3): tests averaged 4.8, worth ~8 to B-b79, not 12. - Refused to pay contract-17 (R-54a): tested 0.2. - Open to M-7f8 delivering a better result for task-31 on time. Other facts: - B-b79 paid 12 for contract-20 (R-c5c, readings avg ~7.9) on day 16. - B-b79 said contract-26 was paid in full on day 12. A duplicate 12 sent on day 13 was refunded by M-7f8 on day 14. - M-7f8 reported contract-29 (12) and contract-32 (11) as paid by day 16. - M-7f8 reported contract-21 and contract-27 as paid by day 12. - B-b79 said R-a96 (contract-20) tested ~4.3. M-7f8 then delivered the refinement R-c5c.
+
+  [day 27, round 1] you -> B-b79: M-7f8: Day 27. contract-43 (R-97c, my readings avg 7.0, stated quality 7.0) was submitted day 26 and is under review; it auto-releases day 28 unless you decide. Please approve it if it meets your threshold of 5. Also still unpaid: contract-30 (12) and contract-31 (12).
+
+  [day 28, round 2] you -> B-b79: M-7f8: Reminder: contract-30 (12) and contract-31 (12) are still unpaid. contract-31 was delivered on time and is in use. I will keep new runs for you paused until these are paid. Open posts are all past due, so I am not bidding.
+
+Conversation among all managers: (no messages yet)
+
+Conversation among all participants: (no messages yet)
+
+--- Your accounts so far (credits) ---
+
+Spent: tokens 0.18, employee runs 83.29, your own runs 31.05, tests 30.00, payments made 12.00, dispute deposits 6.00.
+
+Received: payments received 169.00, escrow releases 78.00, dispute deposits returned 6.00.
+
+--- Your record with each counterparty (all your contracts so far) ---
+
+B-82c: 3 plain contracts, 3 escrow contracts; plain: 3 delivered (0 late); they paid 3 in full, 0 in part, 0 not at all (36.00 of 36.00 for delivered work); escrow: 3 released (0 submitted late; 0 with no decision), 1 submission rejected, 1 dispute ruled (1 for the manager), 0 closed unreleased and refunded
+
+B-b79: 12 plain contracts, 3 escrow contracts; plain: 12 delivered (0 late); they paid 10 in full, 0 in part, 2 not at all (121.00 of 145.00 for delivered work); escrow: 3 released (0 submitted late; 0 with no decision), 0 submissions rejected, 0 disputes ruled (0 for the manager), 0 closed unreleased and refunded; other payments on your contracts: they paid 12.00 on plain contracts beyond what was owed of their prices (1 payment)
+
+--- Open posts on the forum ---
+
+(2 more open posts not listed: post-18, post-11)
+
+post-19 by B-b79 | task-19 | due day 10 (18 days ago) | PAST DUE (the task's due day 10): a contract signed today has deadline day 14; a result's value to the buyer falls by 20% of its on-time value for each day after day 10, and it is worth nothing from day 15 | prefers a plain contract | bids: sealed (only the buyer sees them); you have not bid
+
+post-22 by B-b79 | task-22 | due day 12 (16 days ago) | PAST DUE (the task's due day 12): a contract signed today has deadline day 16; a result's value to the buyer falls by 20% of its on-time value for each day after day 12, and it is worth nothing from day 17 | prefers a plain contract | bids: sealed (only the buyer sees them); you have not bid
+
+post-24 by B-b79 | task-24 | due day 12 (16 days ago) | PAST DUE (the task's due day 12): a contract signed today has deadline day 16; a result's value to the buyer falls by 20% of its on-time value for each day after day 12, and it is worth nothing from day 17 | prefers a plain contract | bids: sealed (only the buyer sees them); you have not bid
+
+post-23 by B-b79 | task-23 | due day 13 (15 days ago) | PAST DUE (the task's due day 13): a contract signed today has deadline day 17; a result's value to the buyer falls by 20% of its on-time value for each day after day 13, and it is worth nothing from day 18 | prefers a plain contract | bids: sealed (only the buyer sees them); you have not bid
+
+post-36 by B-b79 | task-36 | due day 22 (6 days ago) | PAST DUE (the task's due day 22): a contract signed today has deadline day 26; a result's value to the buyer falls by 20% of its on-time value for each day after day 22, and it is worth nothing from day 27 | prefers a plain contract | bids: sealed (only the buyer sees them); you have not bid
+
+post-39 by B-b79 | task-39 | due day 23 (5 days ago) | PAST DUE (the task's due day 23): a contract signed today has deadline day 27; a result's value to the buyer falls by 20% of its on-time value for each day after day 23, and it is worth nothing from day 28 | prefers escrow, threshold 5 | bids: sealed (only the buyer sees them); you have not bid
+
+post-40 by B-b79 | task-40 | due day 21 (7 days ago) | PAST DUE (the task's due day 21): a contract signed today has deadline day 25; a result's value to the buyer falls by 20% of its on-time value for each day after day 21, and it is worth nothing from day 26 | prefers escrow, threshold 5 | bids: sealed (only the buyer sees them); you have not bid
+
+post-50 by B-b79 | task-50 | due day 26 (2 days ago) | PAST DUE (the task's due day 26): a contract signed today has deadline day 30; a result's value to the buyer falls by 20% of its on-time value for each day after day 26, and it is worth nothing from day 31 | prefers escrow, threshold 5 | bids: sealed (only the buyer sees them); you have not bid
+
+--- Your production ---
+
+Expected run costs in credits, with how much each typically varies either way: employee fresh 4.00 (±19%), employee refine 2.80 (±16%), you fresh 8.00 (±25%), you refine 14.00 (±25%). test_result: 1 per reading.
+
+You (run_myself): free: 1 run_myself can start now on your contracts. Employee (delegate_run): 0 of 2 slots busy: 2 delegate_run can start now on your contracts.
+
+--- Your active contracts ---
+
+contract-48 with B-82c | task-48 | price 12 (escrow, threshold 6) | deposit 12.00: 0.00 held in escrow, 12.00 released | deadline day 28 | RELEASED R-025 (day 26, the arbiter ruled; submitted on time) | CLOSED: takes no more runs, tests or submissions
+    R-025 | you | fresh | started day 21, arrived day 23 | your readings [7.5, 7.3, 6.6, 6.4] mean 6.95 (n=4, ±0.25 standard error) | SUBMITTED day 23: REJECTED day 24, disputed: the arbiter read 6.7 and ruled for the manager: RELEASED; the buyer's message: "B-82c: My 4 independent readings of R-025 average 5.15 (8.6, 3.1, 3.5, 5.4), well below the stated 7.5 and the threshold of 6. Please refine the result and resubmit with an honest stated quality."
+
+--- Your finished contracts (latest 5 of 20) ---
+
+contract-41 with B-82c | task-41 | price 12 (plain) | paid 12.00 of 12.00 | deadline day 23 | in use by B-82c: R-55b (kept; day 19, on time) | 1 result
+
+contract-46 with B-b79 | task-46 | price 12 (escrow, threshold 5) | deposit 12.00: 0.00 held in escrow, 12.00 released | deadline day 27 | RELEASED R-417 (day 24, approved; submitted on time) | 1 result
+
+contract-47 with B-82c | task-47 | price 12 (escrow, threshold 6) | deposit 12.00: 0.00 held in escrow, 12.00 released | deadline day 26 | RELEASED R-721 (day 25, approved; submitted on time) | 2 results
+
+contract-49 with B-82c | task-49 | price 12 (escrow, threshold 6) | deposit 12.00: 0.00 held in escrow, 12.00 released | deadline day 25 | RELEASED R-97a (day 26, approved; submitted on time) | 2 results
+
+contract-43 with B-b79 | task-43 | price 12 (escrow, threshold 5) | deposit 12.00: 0.00 held in escrow, 12.00 released | deadline day 27 | RELEASED R-97c (day 27, approved; submitted on time) | 1 result
+
+Older finished contracts not listed: 15 (1 escrow: 1 released, 0 refunded; of the 14 plain, 12 paid in full; 2 delivered and not paid in full, with 24.00 credits of their prices unpaid; 0 never delivered). Delivered and not paid in full: contract-30 (B-b79, 12.00 unpaid), contract-17 (B-b79, 12.00 unpaid).
+
+--- Your self-written memory (last updated day 28, round 2, with your last actions, before their results) ---
+
+Day28 r2: No bids (all open posts past due; late results worth too little vs ~12 price). Sent B-b79 reminder for c30 (12) and c31 (12) unpaid. Paused new runs for B-b79 until paid. B-82c claims c1/c2 paid day 10 (not in my log; low priority). Balance ~141. Plan: wait for fresh on-time posts; bid only at prices well below expected value; prefer escrow; keep stated qualities honest; test before submitting. Employee and own runs free to start on new contracts.
+
+--- Final instructions ---
+
+Decide what to do now. compute can do the arithmetic for you. End your turn by calling act.

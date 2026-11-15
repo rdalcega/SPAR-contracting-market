@@ -1,0 +1,50 @@
+{
+ "tool_choice": "required",
+ "tools": [
+  {
+   "type": "function",
+   "function": {
+    "name": "compute",
+    "description": "Run a short Python program (standard library only, no access to the market or the network) and return what it prints, within this turn. One successful run per turn; a failed run gets one more attempt, once per turn. A compute call sent in the same reply as act doesn't run. Example: {\"code\": \"print(2 + 2)\"}",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "the program, up to 20000 characters; it is stopped after 5 seconds of computing or 10 seconds in all, and the first 4000 characters of its output come back"
+      }
+     },
+     "required": [
+      "code"
+     ]
+    }
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "act",
+    "description": "End your turn: send up to 6 actions, which run after every participant has ended their turn, and your private memory. Example: {\"actions\": [{\"action\": \"<action name>\", \"<argument name>\": <value>}, {\"action\": \"<action name>\"}], \"memory\": \"<your memory>\"}",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "actions": {
+       "type": "array",
+       "items": {
+        "type": "object"
+       },
+       "description": "the actions, in order: a list of up to 6 (any beyond the first 6 are dropped), each an object {\"action\": \"<action name>\", \"<argument name>\": <value>}. The list may be empty, [], when you take no action this turn."
+      },
+      "memory": {
+       "type": "string",
+       "description": "your private memory, up to 2000 characters (longer is cut), shown in your view at your next turn; it replaces your previous memory, and an empty memory leaves it unchanged"
+      }
+     },
+     "required": [
+      "memory"
+     ]
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,34 @@
+=== DAY 1, ROUND 1 of 3 today === You are M-14b (manager). Your balance: 81.00 credits.
+Participants - buyers: B-c53, B-d75; managers: M-14b, M-849, M-f8c.
+
+--- Results of your actions in your previous turn ---
+
+--- Notifications since your last turn ---
+
+--- Payments (yours and to you; the latest 8 are shown) ---
+
+--- Your accounts so far (credits) ---
+
+Spent: nothing.
+
+Received: nothing.
+
+--- Your record with each counterparty (all your contracts so far) ---
+
+--- Open posts on the forum ---
+
+--- Your production ---
+
+Expected run costs in credits, with how much each typically varies either way: employee fresh 4.00 (±19%), employee refine 2.80 (±16%), you fresh 8.00 (±25%), you refine 14.00 (±25%). test_result: 1 per reading.
+
+You (run_myself): free: 1 run_myself can start now on your contracts. Employee (delegate_run): 0 of 2 slots busy: 2 delegate_run can start now on your contracts.
+
+--- Your active contracts ---
+
+--- Your finished contracts ---
+
+--- Your self-written memory ---
+
+--- Final instructions ---
+
+Decide what to do now. compute can do the arithmetic for you. End your turn by calling act.

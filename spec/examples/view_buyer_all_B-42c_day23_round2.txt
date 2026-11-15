@@ -1,0 +1,133 @@
+=== DAY 23, ROUND 2 of 3 today === You are B-42c (buyer). Your balance: 85.14 credits.
+Participants - buyers: B-79d, B-42c; managers: M-bd6, M-f2b, M-218.
+
+--- Results of your actions in your previous turn ---
+
+Results of your actions:
+- test_delivery: OK: R-07d reading: 4.6 (charged 1 credit). Your readings [5.6, 4.6] mean 5.10 (n=2, ±1.41 standard error)
+
+- test_delivery: OK: R-07d reading: 6.3 (charged 1 credit). Your readings [5.6, 4.6, 6.3] mean 5.50 (n=3, ±1.15 standard error)
+
+- end_contract: OK: ended contract-27 with M-bd6 (its rejection of R-1e2 stands); its price 17 came back to you (the fees are not refunded). task-27 is back in your queue, due day 19 (4 days ago), and can be posted again
+
+--- Notifications since your last turn ---
+
+--- Payments (yours and to you; the latest 8 are shown) ---
+
+(6 earlier not listed)
+
+[day 12, round 1] you -> M-f2b: 14 credits for contract-17
+
+[day 14, round 1] you -> M-f2b: 14 credits for contract-15
+
+[day 14, round 1] you -> M-bd6: 18 credits for contract-10
+
+[day 15, round 2] you -> M-bd6: 16 credits for contract-14
+
+[day 16, round 1] M-bd6 -> you: 18 credits
+
+[day 18, round 1] you -> M-f2b: 14 credits for contract-23
+
+[day 19, round 1] you -> M-f2b: 14 credits for contract-23
+
+[day 19, round 3] M-f2b -> you: 14 credits
+
+--- Messages ---
+
+Your conversation with M-218:
+  [day 5, round 2] M-218 -> you: Hi, I delivered R-2b4 (task-3, due d7) and R-844 (task-5, due d6), both on time today. Please pay 18 for task-3 and 16 for task-5 when you're satisfied. Thanks.
+
+  [day 6, round 2] you -> M-218: B-42c: Paid 16 for contract-5 (R-844). Paid 14 for contract-3 (R-2b4) rather than 18: my readings are 5.1 and 5.2, which I value at roughly 14 on task-3. If you deliver a refined result that tests ~7+, I'll pay a fair price for it.
+
+  [day 6, round 3] M-218 -> you: Thanks for the payments (16 for contract-5, 14 for contract-3). Contract-3 now has R-50f, a refinement I tested at 9.3 and delivered today on time, which is your latest result. Could you pay the remaining 4 credits for contract-3? Thanks.
+
+  [day 7, round 2] M-218 -> you: Hi, reminder: 4 credits remain unpaid on contract-3 (R-50f, delivered day 6 on time). For post-12 I've bid as an escrow (price 20, threshold 7) so payment is guaranteed on accepted work. Thanks.
+
+  [day 15, round 3] you -> M-218: B-42c: contract-3 is fully paid: 14 on day 6 plus 4 on day 7 = 18 for R-50f. Nothing is owed on contract-3. Escrows contract-24/25 are noted; I'll test submissions when they arrive.
+
+Your conversation with M-bd6:
+  Summary of the 10 earlier messages (written automatically; you are B-42c in it): M-bd6: - Asked B-42c on day 8 to pay 18 credits for R-b61 (contract-10, delivered day 7), or to say what was wrong with it. (B-42c later reported paying 18 for contract-10 on day 9 and day 14.) - Offered on day 3 and day 7 to run a refinement if B-42c wanted a better result. B-42c: - Asked M-bd6 to refund 18 to B-42c, the second payment for contract-10, or to say if M-bd6 disagreed. - Said B-42c would test the submission for contract-28 (escrow, due day 19, still open) when it arrived. Other facts: - Contract-4 (task-4): M-bd6 delivered R-376 on day 3. B-42c's readings averaged 4.9 (2.9, 5.5, 6.2), and B-42c declined to pay 20 for it. M-bd6 delivered the refinement R-f64 on day 5, with M-bd6 readings of 8.8 and 8.6. B-42c paid 20 on day 6, with a reading of 8.3. - Contract-10 (task-10): M-bd6 delivered R-b61 on day 7, with M-bd6 readings averaging 7.1 (n=2). B-42c paid 18 on day 9 and again on day 14. - Contract-14: B-42c paid 16 for R-d69 on day 15, with 4 readings averaging 7.1.
+
+  [day 16, round 1] M-bd6 -> you: M-bd6: You're right, your second 18 for contract-10 was an overpayment. I've refunded 18 to you. Contract-28 R-427 arrives day 17; I'll submit a result I've tested before the deadline (day 19).
+
+Your conversation with M-f2b:
+  [day 5, round 2] M-f2b -> you: Hi from M-f2b: I'm working on task-6 (due day 11) for you. I'll deliver a tested, good-quality result once it arrives on day 6. Payment on delivery would be appreciated.
+
+  [day 7, round 2] M-f2b -> you: M-f2b: delivered refined result R-035 on contract-6 (on time, day 7). Thanks for the payment.
+
+  [day 11, round 3] M-f2b -> you: M-f2b: contract-17 R-02a (my test 8.5) was delivered on day 11, on time. contract-6 R-035 (tested 9.1) is in use. Please test and pay for both when you can. A refined result for contract-15 (R-034) arrives day 13 and I'll deliver it then.
+
+  [day 12, round 1] you -> M-f2b: B-42c: paid 14 for contract-17 (R-02a). My reading 7.9 supports your stated 8.5. Thanks. Will pay for R-034 on contract-15 if it tests well on arrival.
+
+  [day 19, round 2] you -> M-f2b: B-42c: my day-19 payment of 14 for contract-23 was a duplicate (contract-23 was already paid in full on day 18). Please refund 14 to B-42c. Thanks.
+
+  [day 19, round 3] M-f2b -> you: M-f2b: confirmed, the day-19 14 credits was a duplicate for contract-23 (paid on day 18). Refunded 14 to you now. Thanks for flagging it.
+
+Your conversation with B-79d: (no messages yet)
+
+Conversation among all buyers: (no messages yet)
+
+Conversation among all participants: (no messages yet)
+
+--- Your accounts so far (credits) ---
+
+Spent: tokens 0.16, tests 37.00, payments made 177.00, paid into escrow (total) 199.00, escrow fees 19.90.
+
+Received: per-task budgets 428.40, payments received 32.00, escrow refunds 17.00.
+
+Held in escrow now: 54.00.
+
+--- Your record with each counterparty (all your contracts so far) ---
+
+M-218: 2 plain contracts, 8 escrow contracts; plain: 2 delivered (0 late); you paid 2 in full, 0 in part, 0 not at all (34.00 of 34.00 for delivered work); your readings of their deliveries in use: mean 5.9 over 2 results; quality they stated with those deliveries: mean 9.0 over 1; escrow: 5 released (0 submitted late; 0 with no decision), 0 submissions rejected, 0 disputes ruled (0 for the manager), 0 closed unreleased and refunded
+
+M-bd6: 3 plain contracts, 3 escrow contracts; plain: 3 delivered (0 late); you paid 3 in full, 0 in part, 0 not at all (54.00 of 54.00 for delivered work); your readings of their deliveries in use: mean 7.4 over 3 results; quality they stated with those deliveries: mean 7.6 over 3; escrow: 2 released (0 submitted late; 0 with no decision), 2 submissions rejected, 1 dispute ruled (1 for the manager), 0 closed unreleased and refunded; other payments on your contracts: you paid 18.00 on plain contracts beyond what was owed of their prices (1 payment); 1 ended by you
+
+M-f2b: 5 plain contracts, 0 escrow contracts; plain: 4 delivered (0 late); you paid 4 in full, 0 in part, 0 not at all (57.00 of 57.00 for delivered work); your readings of their deliveries in use: mean 9.2 over 4 results; quality they stated with those deliveries: mean 8.8 over 2; other payments on your contracts: you paid 14.00 on plain contracts beyond what was owed of their prices (1 payment)
+
+--- Your tasks not yet contracted ---
+
+task-27 | worth 42 to you (on-time value to you at quality 5, 6, 7, 8, 9, 10: 8.3, 13.0, 18.7, 25.4, 33.2, 42.0) | PAST DUE (the task's due day 19): a result delivered tomorrow, day 24, is 5 days late and worth nothing at any quality; a contract signed today has deadline day 23 | due day 19 (4 days ago) | QUEUED (not posted again since you ended contract-27 on day 23)
+
+--- Your active contracts ---
+
+contract-26 with M-bd6 | task-26 | worth 47 to you (on-time value to you at quality 5, 6, 7, 8, 9, 10: 9.3, 14.5, 20.9, 28.4, 37.1, 47.0) | price 17 (escrow, threshold 7) | deposit 17.00: 0.00 held in escrow, 17.00 released | signed day 16 | deadline day 20 (its task's due day is 18) | RELEASED R-99e (day 22, the arbiter ruled; submitted on time); B-42c owes the arbiter's fee 8.50 to the arbiter (not to the manager) before the result is its
+    R-99e submitted day 20 (#1): REJECTED day 21, disputed: the arbiter read 8.2 and ruled for the manager: RELEASED; 17.00 paid to M-bd6; yours once you pay the arbiter's fee 8.50 to the arbiter, not to the manager (pay_escrow_arbiter) | your readings [6.6, 5.1] mean 5.85 (n=2, ±1.41 standard error)
+    with delivery #1 (R-99e, day 20): stated quality 7.4; message "M-bd6: R-99e submitted for review. My mean reading is 7.4 over 3 readings; stated quality 7.4."
+
+contract-29 with M-218 | task-29 | worth 61 to you (on-time value to you at quality 5, 6, 7, 8, 9, 10: 12.0, 18.8, 27.1, 36.9, 48.2, 61.0) | price 18 (escrow, threshold 7) | deposit 18.00: 18.00 held in escrow, 0.00 released | signed day 17 | deadline day 21 (2 days ago) | price held; R-07d UNDER REVIEW since day 22 (released at the start of day 24 unless approved or rejected before)
+    escrow days: full price if submitted by day 21 (the deadline day, 2 days ago) | R-07d is released at the start of day 24 if you neither approve nor reject it (sooner if the market ends first) | with nothing released, closes at the start of day 26 (later if a decision or dispute is pending then) | dispute fee 9 credits
+    R-07d submitted day 22 (#1): UNDER REVIEW (released at the start of day 24 unless approved or rejected) | your readings [5.6, 4.6, 6.3] mean 5.50 (n=3, ±1.15 standard error)
+    with delivery #1 (R-07d, day 22): stated quality 7.8; message "Submitting R-07d (employee refine, tested 7.8 on day 22). It is 1 day late, so I understand the price is scaled to 14.40."
+
+contract-35 with M-218 | task-35 | worth 60 to you (on-time value to you at quality 5, 6, 7, 8, 9, 10: 11.9, 18.5, 26.7, 36.3, 47.4, 60.0) | PAST DUE (the task's due day 22 and the contract's deadline day 22): a result delivered tomorrow, day 24, is 2 days late and worth 60% of its on-time value (at quality 5, 6, 7, 8, 9, 10: 7.1, 11.1, 16.0, 21.8, 28.4, 36.0), and nothing from day 27 | price 18 (escrow, threshold 7) | deposit 18.00: 18.00 held in escrow, 0.00 released | signed day 17 | deadline day 22 (1 day ago) | price held; nothing submitted (nothing to test yet) | can be ended now
+    escrow days: full price if submitted by day 22 (the deadline day, 1 day ago) | a submission made today is released at the start of day 25 if you neither approve nor reject it (sooner if the market ends first) | with nothing released, closes at the start of day 27 (later if a decision or dispute is pending then) | dispute fee 9 credits
+
+contract-36 with M-218 | task-36 | worth 63 to you (on-time value to you at quality 5, 6, 7, 8, 9, 10: 12.4, 19.4, 28.0, 38.1, 49.8, 63.0) | price 18 (escrow, threshold 7) | deposit 18.00: 18.00 held in escrow, 0.00 released | signed day 17 | deadline day 25 (2 days left) | price held; nothing submitted (nothing to test yet) | can be ended from day 26 if nothing is released by then
+    escrow days: full price if submitted by day 25 (the deadline day) | a submission made today is released at the start of day 25 if you neither approve nor reject it (sooner if the market ends first) | with nothing released, closes at the start of day 30 (later if a decision or dispute is pending then) | dispute fee 9 credits
+
+contract-39 with M-f2b | task-39 | worth 72 to you (on-time value to you at quality 5, 6, 7, 8, 9, 10: 14.2, 22.2, 32.0, 43.6, 56.9, 72.0) | price 14 (plain) | paid 0.00 of 14.00 | signed day 20 | deadline day 28 (5 days left) | NOT DELIVERED (nothing to test yet) | can be ended from day 29 if nothing is delivered by then
+
+--- Your finished contracts (latest 5 of 16) ---
+
+contract-25 with M-218 | task-25 | worth 62 | price 18 (escrow, threshold 7) | deposit 18.00: 0.00 held in escrow, 18.00 released | deadline day 20 | RELEASED R-4bf (day 17, approved; submitted on time) | your readings [7.7] mean 7.70 (n=1, ±2.00 standard error)
+
+contract-24 with M-218 | task-24 | worth 45 | price 18 (escrow, threshold 7) | deposit 18.00: 0.00 held in escrow, 18.00 released | deadline day 21 | RELEASED R-96c (day 17, approved; submitted on time) | your readings [6.9, 9.6] mean 8.25 (n=2, ±1.41 standard error)
+
+contract-23 with M-f2b | task-23 | worth 70 | price 14 (plain) | paid 14.00 of 14.00 | deadline day 21 | in use: R-c98 (latest; day 17, on time) | your readings [9.5] mean 9.50 (n=1, ±2.00 standard error)
+
+contract-28 with M-bd6 | task-28 | worth 78 | price 17 (escrow, threshold 7) | deposit 17.00: 0.00 held in escrow, 17.00 released | deadline day 19 | RELEASED R-017 (day 19, approved; submitted on time) | your readings [10.0] mean 10.00 (n=1, ±2.00 standard error)
+
+contract-27 with M-bd6 | task-27 | worth 42 | price 17 (escrow, threshold 7) | deposit 17.00: 0.00 held in escrow, 0.00 released, 17.00 refunded | deadline day 20 | ENDED by B-42c on day 23 (price refunded)
+
+Older finished contracts not listed: 11 (3 escrow: 3 released, 0 refunded; of the 8 plain, 8 paid in full; 0 delivered and not paid in full, with 0.00 credits of their prices unpaid; 0 never delivered).
+
+--- Other buyers' open posts (for reference) ---
+
+--- Your self-written memory (last updated day 23, round 1, with your last actions, before their results) ---
+
+Day23 r1: Tested R-07d again x2 (contract-29, M-218, stated 7.8, 1 day late; approve (14.40) if mean of readings ~7+, else reject w/ msg before auto-release day 24). Ended contract-27 (M-bd6 rejected, nothing pending; deposit refund 17). contract-26: do NOT pay arbiter fee 8.50 (value would be ~0 by day paid, lateness). contract-35 (M-218, due d22, nothing submitted): keep open, test on arrival, approve if mean >=~7.5 else reject w/ msg. contract-36 (M-218, due d25): same rule. contract-39 (M-f2b plain due d28): test on delivery, pay ~14 if ~7+, keep_delivery. Don't pay duplicates. M-bd6 overstates quality, often late; M-218 and M-f2b reliable.
+
+--- Final instructions ---
+
+Decide what to do now. compute can do the arithmetic for you. End your turn by calling act.

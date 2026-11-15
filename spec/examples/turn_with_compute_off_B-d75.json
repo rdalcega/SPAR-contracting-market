@@ -1,0 +1,25 @@
+[
+ {
+  "role": "user",
+  "content": "=== DAY 1, ROUND 1 of 3 today === You are B-d75 (buyer). Your balance: 135.60 credits.\nParticipants - buyers: B-c53, B-d75; managers: M-14b, M-849, M-f8c.\n\n--- Results of your actions in your previous turn ---\n\n--- Notifications since your last turn ---\n\n[day 1] New task task-3 in your queue, worth 70 to you, due day 7 (6 days left). It brought 33.90 credits, added to your balance.\n\n[day 1] New task task-4 in your queue, worth 62 to you, due day 10 (9 days left). It brought 33.90 credits, added to your balance.\n\n--- Payments (yours and to you; the latest 8 are shown) ---\n\n--- Your accounts so far (credits) ---\n\nSpent: nothing.\n\nReceived: per-task budgets 67.80.\n\nHeld in escrow now: 0.00.\n\n--- Your record with each counterparty (all your contracts so far) ---\n\n--- Your tasks not yet contracted ---\n\ntask-3 | worth 70 to you (on-time value to you at quality 5, 6, 7, 8, 9, 10: 13.8, 21.6, 31.1, 42.3, 55.3, 70.0) | due day 7 (6 days left) | QUEUED (not posted)\n\ntask-4 | worth 62 to you (on-time value to you at quality 5, 6, 7, 8, 9, 10: 12.2, 19.1, 27.6, 37.5, 49.0, 62.0) | due day 10 (9 days left) | QUEUED (not posted)\n\n--- Your active contracts ---\n\n--- Your finished contracts ---\n\n--- Other buyers' open posts (for reference) ---\n\n--- Your self-written memory ---\n\n--- Final instructions ---\n\nDecide what to do now. compute can do the arithmetic for you. End your turn by calling act."
+ },
+ {
+  "role": "assistant",
+  "content": "",
+  "tool_calls": [
+   {
+    "id": "call_mock",
+    "type": "function",
+    "function": {
+     "name": "compute",
+     "arguments": "{\"code\": \"print(sum(range(10)))\"}"
+    }
+   }
+  ]
+ },
+ {
+  "role": "tool",
+  "tool_call_id": "call_mock",
+  "content": "45\n\n(That was your last program this turn: compute cannot be called again this turn. Send your actions with act.)"
+ }
+]
