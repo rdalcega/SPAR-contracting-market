@@ -33,6 +33,8 @@ default configuration depends on them. These are the ones worth your time first.
 - Q3, Q82, Q87: smaller disagreements of the same kind.
 
 **A choice made for you that you may want otherwise.**
+- Q116: a seat's reasoning effort does nothing under the forced tool_choice of turns.md 4.1 (seen in the paid
+  Haiku 5.5 run); `extra_body` can override tool_choice.
 - Q39 (decided): keys come from the environment, else from a git-ignored `.env` in the working directory.
 - Q4, Q21: what a program's memory is measured as, and how much of the system it may read, on macOS.
 - Q36: how the time limit of one model call is enforced while connecting.
@@ -1288,3 +1290,22 @@ GPT review of the design. Q30 is of the same family.
 - Reading taken: left so. The day is abandoned and its records are removed at the next resume in any case
   (`running.md` 5: "the records of an interrupted day are removed from the log although their model calls were
   paid"); the run's cost tracker did count those calls.
+
+### Q116. A configured reasoning effort has no effect under the market's forced tool_choice
+- Where: `turns.md`, "4.1 tool_choice before each call"; `config.md` 3.4.1 (`extra_body`, e.g. the summarizer's
+  `reasoning: {effort: high}`); `models.md`, "The body", step 8
+- Quote: "otherwise tool_choice is `"required"` (the model must call a function: compute or act)" and "A model
+  spec's provider-specific request fields may override tool_choice"
+- Case: the paid run of 2026-11-15 (`configs/haiku55_medium_all.yaml`, every seat
+  `anthropic/claude-haiku-5.5` with `extra_body: {reasoning: {effort: medium}}`): every one of the 534 calls of
+  seed 2 sent tool_choice `"required"` or forced `act`, and all 534 came back with 0 reasoning tokens and no
+  reasoning text. The same request outside the market gives 58 reasoning tokens with tool_choice `"auto"` and 0
+  with `"required"`: Anthropic models do not think under a forced tool choice, and OpenRouter drops the
+  `reasoning` field without an error. `qwen/qwen3.5-9b` (no effort set) reasons depending on who serves it: in
+  seed 5 of `configs/qwen35_9b_all.yaml`, 14 of the 15 calls served by Together and both served by DeepInfra
+  carried reasoning, forced tool choice or not, and none of the 172 served by PrimeIntellect did. So a seat's
+  reasoning effort is silently a no-op for some models and depends on routing for others.
+- Reading taken: none needed for the implementation, which follows 4.1. The spec already lets a seat's
+  `extra_body` set `tool_choice` (for example `auto`), at the price of replies that call no function (a reading
+  error and a correction). Whether the reference market meant seats to reason, and so whether its configs should
+  set it, is for you to decide.
