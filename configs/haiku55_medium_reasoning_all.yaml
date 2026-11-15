@@ -1,0 +1,22 @@
+# Every seat on Claude Haiku 5.5 reasoning at medium effort, all message channels on.
+# tool_choice auto: under the market's forced tool choice (turns.md 4.1) Anthropic models do not think at all
+# (SPEC_QUESTIONS Q116); extra_body overrides it on every call of a turn (models.md, "The body"). OpenRouter
+# returns a summary of the reasoning (summarized thinking is its default), logged with each call.
+# Pinned to Anthropic's own endpoint so every call is served the same way. Haiku 5.5 takes no temperature.
+seeds: [0, 1, 2, 3, 4, 5]
+parallel_episodes: 6
+cost_cap_usd: 25
+name: haiku55_medium_reasoning_all
+message_channels: all
+models:
+  buyers: &haiku
+    provider: openrouter
+    model: anthropic/claude-haiku-5.5
+    price_in_per_m: 0.10
+    price_out_per_m: 0.50
+    temperature: null
+    extra_body:
+      reasoning: {effort: medium}
+      tool_choice: auto
+      provider: {order: [anthropic], allow_fallbacks: false, require_parameters: true}
+  managers: *haiku

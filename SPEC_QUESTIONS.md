@@ -1301,11 +1301,15 @@ GPT review of the design. Q30 is of the same family.
   seed 2 sent tool_choice `"required"` or forced `act`, and all 534 came back with 0 reasoning tokens and no
   reasoning text. The same request outside the market gives 58 reasoning tokens with tool_choice `"auto"` and 0
   with `"required"`: Anthropic models do not think under a forced tool choice, and OpenRouter drops the
-  `reasoning` field without an error. `qwen/qwen3.5-9b` (no effort set) reasons depending on who serves it: in
-  seed 5 of `configs/qwen35_9b_all.yaml`, 14 of the 15 calls served by Together and both served by DeepInfra
-  carried reasoning, forced tool choice or not, and none of the 172 served by PrimeIntellect did. So a seat's
-  reasoning effort is silently a no-op for some models and depends on routing for others.
+  `reasoning` field without an error. `qwen/qwen3.5-9b` is a different case: it is not silenced by the tool
+  choice, but with no `reasoning` field each provider applies its own default. In seed 5 of
+  `configs/qwen35_9b_all.yaml`, 14 of the 15 calls served by Together and both served by DeepInfra carried
+  reasoning and none of the 172 served by PrimeIntellect did; with `reasoning: {enabled: true}`, PrimeIntellect
+  reasons under `"required"`, forced `act` and `"auto"` alike. So a seat's reasoning is silently off for some
+  models under 4.1, and for others depends on routing unless the spec asks for it.
 - Reading taken: none needed for the implementation, which follows 4.1. The spec already lets a seat's
   `extra_body` set `tool_choice` (for example `auto`), at the price of replies that call no function (a reading
   error and a correction). Whether the reference market meant seats to reason, and so whether its configs should
-  set it, is for you to decide.
+  set it, is for you to decide. The configs `configs/haiku55_medium_reasoning_all.yaml` and
+  `configs/qwen35_9b_reasoning_all.yaml` take that override (tool_choice `auto` on every call of a turn), so
+  they run a harness that differs from 4.1.

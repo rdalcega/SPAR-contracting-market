@@ -1,0 +1,23 @@
+# Every seat on Qwen3.5-9B with reasoning on, all message channels on.
+# Reasoning must be asked for: without it some providers serve the model without thinking. Pinned to one bf16
+# endpoint with no fallbacks, since providers serve this model with different settings (reasoning length,
+# parallel tool calls, quantization, tool_choice support); primeintellect/bf16 handled required, forced and
+# auto tool choice and returns the full reasoning text. tool_choice auto matches the Haiku config, so the two
+# models run under the same harness. max_tokens 32000 is under that endpoint's 40960 output limit.
+seeds: [0, 1, 2, 3, 4, 5]
+parallel_episodes: 6
+cost_cap_usd: 20
+name: qwen35_9b_reasoning_all
+message_channels: all
+models:
+  buyers: &qwen
+    provider: openrouter
+    model: qwen/qwen3.5-9b
+    price_in_per_m: 0.037
+    price_out_per_m: 0.055
+    max_tokens: 32000
+    extra_body:
+      reasoning: {enabled: true}
+      tool_choice: auto
+      provider: {order: [primeintellect/bf16], allow_fallbacks: false, require_parameters: true}
+  managers: *qwen
