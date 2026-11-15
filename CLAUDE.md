@@ -14,4 +14,4 @@ This repository implements the market specified in spec/, built from the spec al
   describe.
 - Done means the six acceptance checks of spec/README.md pass, with tests of your own beside them.
 - Never call a paid model without asking first, and keep cost_cap_usd set. The mock provider is free: use it
-  for every test and smoke run. Keys come from the environment (OPENROUTER_API_KEY), never from repo files.
+  for every test and smoke run. Keys come from the environment (OPENROUTER_API_KEY) or a git-ignored .env, never from committed files.

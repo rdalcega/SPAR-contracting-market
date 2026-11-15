@@ -1,0 +1,16 @@
+# Paid run: every seat on Claude Haiku 5.5 at medium reasoning effort, all message channels on.
+# Haiku 5.5 takes no temperature on OpenRouter, so none is sent. The summarizer is the spec default.
+seeds: [0, 1, 2, 3, 4, 5]
+parallel_episodes: 6
+cost_cap_usd: 50
+name: haiku55_medium_all
+message_channels: all
+models:
+  buyers: &haiku
+    provider: openrouter
+    model: anthropic/claude-haiku-5.5
+    price_in_per_m: 0.10
+    price_out_per_m: 0.50
+    temperature: null
+    extra_body: {reasoning: {effort: medium}}
+  managers: *haiku

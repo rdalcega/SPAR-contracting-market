@@ -33,7 +33,7 @@ default configuration depends on them. These are the ones worth your time first.
 - Q3, Q82, Q87: smaller disagreements of the same kind.
 
 **A choice made for you that you may want otherwise.**
-- Q39: keys are read from environment variables only, never from a `.env` file.
+- Q39 (decided): keys come from the environment, else from a git-ignored `.env` in the working directory.
 - Q4, Q21: what a program's memory is measured as, and how much of the system it may read, on macOS.
 - Q36: how the time limit of one model call is enforced while connecting.
 - Q18, Q40: integers of more than 4,300 digits and `extra_body` nested too deep to write are refused at load.
@@ -497,8 +497,9 @@ GPT review of the design. Q30 is of the same family.
 - Case: the spec allows it without requiring it; this repository's own rule is that keys come from the
   environment, never from repo files, and a `.env` in the working directory is normally a file in the repo
   folder.
-- Reading taken: not read. Keys come from environment variables only, and the setup error reads `set
-  {variable} in your environment`. Say so if `.env` support is wanted: it is a dozen lines.
+- Decided (the user asked for `.env` support): read. A key variable unset or empty in the environment is looked
+  up in `.env` in the working directory (git-ignored, never committed); otherwise the environment wins. A `.env`
+  that cannot be read counts as absent. The setup error reads `set {variable} in your environment or in .env`.
 
 ### Q40. An `extra_body` nested deeper than its JSON text can be written
 - Where: `config.md`, "3.4.1 A model spec", row `extra_body`

@@ -1004,22 +1004,41 @@ def test_the_tracker_under_threads():
 def test_an_unset_or_empty_key_variable_fails_the_setup(spec, variable, env):
     with pytest.raises(models.SetupError) as e:
         models.backend(resolved(spec), LLM, models.CostTracker(None), env=env)
-    assert str(e.value) == f"set {variable} in your environment"
+    assert str(e.value) == f"set {variable} in your environment or in .env"
 
 
-def test_the_key_comes_from_the_environment_only(server, tmp_path, monkeypatch):
-    # models.md 3 lets an implementation read a .env file; this one does not (keys never come from repo files)
-    (tmp_path / ".env").write_text("FILE_KEY=from file\n")
-    server.script = [ok()]
+def test_the_key_comes_from_the_environment_or_the_env_file(server, tmp_path, monkeypatch):
+    # models.md 3: a .env file may supply variables, the real environment taking precedence
+    (tmp_path / ".env").write_text("# keys\nexport FILE_KEY='from file'\nBOTH_KEY=from file\n\nNOT A PAIR\n")
+    server.script = [ok(), ok(), ok()]
+    spec = {"provider": "openai_compatible", "model": "m", "base_url": server.url}
+    models.backend(resolved({**spec, "api_key_env": "FILE_KEY"}), LLM, models.CostTracker(None)).call(MESSAGES)
+    assert server.requests[-1].headers["Authorization"] == "Bearer from file"
+    monkeypatch.setenv("BOTH_KEY", "from os.environ")
+    models.backend(resolved({**spec, "api_key_env": "BOTH_KEY"}), LLM, models.CostTracker(None)).call(MESSAGES)
+    assert server.requests[-1].headers["Authorization"] == "Bearer from os.environ"
     make(server, {"api_key_env": "FIRST_KEY"}, env={"FIRST_KEY": "from env"})[0].call(MESSAGES)
     assert server.requests[-1].headers["Authorization"] == "Bearer from env"
-    with pytest.raises(models.SetupError, match="set FILE_KEY in your environment"):
-        make(server, {"api_key_env": "FILE_KEY"})
-    monkeypatch.setenv("REAL_KEY", "from os.environ")
-    spec = resolved({"provider": "openai_compatible", "model": "m", "base_url": server.url,
-                     "api_key_env": "REAL_KEY"})
-    models.backend(spec, LLM, models.CostTracker(None)).call(MESSAGES)
-    assert server.requests[-1].headers["Authorization"] == "Bearer from os.environ"
+    with pytest.raises(models.SetupError, match="set FILE_KEY in your environment or in .env"):
+        make(server, {"api_key_env": "FILE_KEY"}, env={})  # a given env is the only source
+
+
+def test_reading_an_env_file(tmp_path):
+    assert models.read_env_file(str(tmp_path / "none")) == {}
+    assert models.read_env_file(str(tmp_path)) == {}  # a folder cannot be read: no variables
+    (tmp_path / ".env").write_text('﻿A="x=1 # kept"\n  B = 2 # note\nC=\nD="unclosed\nexport\tE=e\n=f\n',
+                                   encoding="utf-8")
+    assert models.read_env_file(str(tmp_path / ".env")) == {"A": "x=1 # kept", "B": "2", "C": "", "D": '"unclosed',
+                                                            "E": "e"}
+
+
+def test_an_empty_environment_variable_falls_back_to_the_env_file(server, tmp_path, monkeypatch):
+    (tmp_path / ".env").write_text("EMPTY_KEY=from file\n")
+    monkeypatch.setenv("EMPTY_KEY", "")
+    server.script = [ok()]
+    spec = {"provider": "openai_compatible", "model": "m", "base_url": server.url, "api_key_env": "EMPTY_KEY"}
+    models.backend(resolved(spec), LLM, models.CostTracker(None)).call(MESSAGES)
+    assert server.requests[-1].headers["Authorization"] == "Bearer from file"
 
 
 def test_the_key_is_read_when_the_backend_is_set_up(server):

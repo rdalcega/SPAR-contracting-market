@@ -573,7 +573,7 @@ def test_a_backend_that_cannot_be_set_up_ends_the_episode_before_any_day(command
     for seed in (0, 1):
         s, log = summary(folder(tmp_path, seed)), records(folder(tmp_path, seed))
         assert (s["status"], s["days_completed"]) == ("error", 0) and not SETTLED & set(s)
-        assert s["error"].strip().splitlines()[-1].endswith("set OPENROUTER_API_KEY in your environment")
+        assert s["error"].strip().splitlines()[-1].endswith("set OPENROUTER_API_KEY in your environment or in .env")
         assert log == [{"n": 1, "type": "stopped", "day": 0, "round": None, "status": "error", "error": s["error"],
                         "days_completed": 0}]
 
@@ -581,8 +581,14 @@ def test_a_backend_that_cannot_be_set_up_ends_the_episode_before_any_day(command
 def test_a_mock_spec_that_names_a_key_variable_needs_it_set(command, tmp_path, monkeypatch):
     monkeypatch.delenv("NO_SUCH_KEY", raising=False)
     assert command("--seeds", "0", models={"buyers": MOCK | {"api_key_env": "NO_SUCH_KEY"}, "managers": MOCK}) == 1
-    assert "set NO_SUCH_KEY in your environment" in summary(folder(tmp_path))["error"]
+    assert "set NO_SUCH_KEY in your environment or in .env" in summary(folder(tmp_path))["error"]
     monkeypatch.setenv("NO_SUCH_KEY", "set")
+    assert command("--seeds", "0", models={"buyers": MOCK | {"api_key_env": "NO_SUCH_KEY"}, "managers": MOCK}) == 0
+
+
+def test_a_key_variable_can_come_from_the_env_file(command, tmp_path, monkeypatch):
+    monkeypatch.delenv("NO_SUCH_KEY", raising=False)
+    (tmp_path / ".env").write_text("NO_SUCH_KEY=set\n")
     assert command("--seeds", "0", models={"buyers": MOCK | {"api_key_env": "NO_SUCH_KEY"}, "managers": MOCK}) == 0
 
 

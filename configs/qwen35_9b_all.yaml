@@ -1,0 +1,17 @@
+# Paid run: every seat on Qwen3.5-9B (its default reasoning), all message channels on.
+# max_tokens 32000 keeps every bf16/fp8 endpoint routable (the smallest output limit listed is 40960).
+# The summarizer is the spec default.
+seeds: [0, 1, 2, 3, 4, 5]
+parallel_episodes: 6
+cost_cap_usd: 35
+name: qwen35_9b_all
+message_channels: all
+models:
+  buyers: &qwen
+    provider: openrouter
+    model: qwen/qwen3.5-9b
+    price_in_per_m: 0.037
+    price_out_per_m: 0.055
+    max_tokens: 32000
+    extra_body: {provider: {quantizations: [bf16, fp16, fp8, unknown]}}
+  managers: *qwen

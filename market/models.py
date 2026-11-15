@@ -97,6 +97,7 @@ def charge(cost, credits_per_usd):
     return finite(round(cost * credits_per_usd, 6), "a token charge")
 
 
+ENV_FILE = ".env"  # section 3: variables also read from this file, the real environment taking precedence
 _LONGEST = 1e9  # seconds: the longest time limit a socket takes; no call lasts that long
 
 
@@ -114,14 +115,44 @@ def resolved(spec):
     return {"api_key_env": variable, **spec, **prices, "base_url": spec.get("base_url") or base}
 
 
+def read_env_file(path):
+    """Section 3: the variables of a .env file: NAME=value lines, with blank lines, # comments and a leading
+    `export` skipped, one pair of matching quotes around a value removed, else a ` #` comment after it; {} when the
+    file is missing or cannot be read."""
+    try:
+        with open(path, encoding="utf-8-sig") as f:
+            lines = f.read().splitlines()
+    except (OSError, UnicodeError):
+        return {}
+    found = {}
+    for line in lines:
+        line = line.strip()
+        if line.split(None, 1)[:1] == ["export"]:
+            line = line[len("export"):].lstrip()
+        name, equals, value = line.partition("=")
+        name, value = name.strip(), value.strip()
+        if not equals or not name or name.startswith("#"):
+            continue
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            value = value[1:-1]
+        else:
+            value = value.split(" #", 1)[0].rstrip()
+        found[name] = value
+    return found
+
+
 def backend(spec, llm, tracker, *, env=None, sleep=time.sleep, clock=time.time):
-    """Section 3, "Setting up": the backend of one model spec, or SetupError naming an unset key variable."""
+    """Section 3, "Setting up": the backend of one model spec, or SetupError naming an unset key variable. The
+    key comes from `env` when given, else from the environment, else (unset or empty there) from ENV_FILE."""
     base, variable = resolved(spec)["base_url"], resolved(spec)["api_key_env"]
     key = None
     if variable is not None:
-        key = (os.environ if env is None else env).get(variable)
+        if env is not None:
+            key = env.get(variable)
+        else:
+            key = os.environ.get(variable) or read_env_file(ENV_FILE).get(variable)
         if not key:
-            raise SetupError(f"set {variable} in your environment")
+            raise SetupError(f"set {variable} in your environment or in .env")
     if spec["provider"] == "mock":
         from . import mock
         return mock.backend(spec)
