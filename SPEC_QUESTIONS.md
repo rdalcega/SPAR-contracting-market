@@ -7,7 +7,7 @@ the part of the spec they concern, so the numbers are not in order down the file
 
 ## Where to start
 
-Most of the 114 entries are edge cases: an unbounded parameter pushed to an extreme, a state normal play cannot
+Most of the 115 entries are edge cases: an unbounded parameter pushed to an extreme, a state normal play cannot
 reach, a field only the log reads. The build took the reading it would defend and nothing an agent reads at the
 default configuration depends on them. These are the ones worth your time first.
 
@@ -463,6 +463,16 @@ GPT review of the design. Q30 is of the same family.
 - Reading taken: (a) the "must" is literal: the connection is shut `timeout_s` after it was made, so an attempt
   ends at most about 2 x `timeout_s` after its start; (b) the bound governs what the server sends once
   connected; connecting is limited by `timeout_s` per address tried, as in the spec's example.
+
+### Q115. A time limit longer than a socket can wait
+- Where: `config.md`, "3.4.3 `llm`: call settings", with `models.md`, "4.3 One attempt and its time limit"
+- Quote: "`llm.timeout_s` | time limit of one attempt of one call, from its start (connecting included) to the
+  last byte of the reply, in seconds ... | 1200 | number > 0"
+- Case: the range has no upper bound, but on this platform a socket or a timer takes no wait above about
+  9.2e9 seconds, so `timeout_s: 1e10` is a valid config whose limit cannot be handed to the operating system.
+- Reading taken: a limit above 1e9 seconds is used as 1e9 seconds (about 31.7 years): the attempt is given up
+  then, and the timeout error names that figure, which is the time actually waited. The alternative, refusing
+  such a value at load as Q18 and Q40 do for other extremes, is not what "number > 0" says. See also Q36.
 
 ### Q37. A `base_url` that is not an http or https URL
 - Where: `config.md`, "3.4.1 A model spec" (`base_url`: "non-empty string"); `models.md` 3 and 4.1
