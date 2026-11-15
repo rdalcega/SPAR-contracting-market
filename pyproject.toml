@@ -1,0 +1,16 @@
+[project]
+name = "contracting-market"
+version = "0.1.0"
+description = "The contracting market specified in spec/, built from the spec alone"
+requires-python = ">=3.15"
+dependencies = ["pyyaml>=6"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
