@@ -50,9 +50,20 @@ def call_name(call):
     return (call.get("function") or {}).get("name")
 
 
+def call_arguments(call):
+    """A function call's arguments as the provider returned them; None when it has none (models.md, 4.7)."""
+    return (call.get("function") or {}).get("arguments")
+
+
+def blank():
+    """A reading with no error, no notes, no actions and no memory: where every reading starts (7), and what an
+    empty reply reads as (13.2)."""
+    return {"error": None, "notes": [], "actions": [], "dropped": 0, "memory": None}
+
+
 def act_arguments(call, cut):
     """An act call's arguments object (7.3 step 1), or None when it cannot be read."""
-    raw = (call.get("function") or {}).get("arguments")
+    raw = call_arguments(call)
     if raw is None or raw == "":
         return {}
     if not isinstance(raw, str):
@@ -100,11 +111,11 @@ def read_items(items):
 def read_reply(calls, cut, limit):
     """The reply that ends a decide chain or answers a correction, read into actions and a memory (7, 8).
 
-    `calls` are the reply's function calls as the provider returned them (none: an empty list or None), `cut` whether its finish reason is
-    `length`, `limit` turns.max_actions or the correction's limit. A reply that cannot be read gives only
-    `error` (7.1, with the suffix of a cut reply).
+    `calls` are the reply's function calls as the provider returned them (none: an empty list or None), `cut`
+    whether its finish reason is `length`, `limit` turns.max_actions or the correction's limit. A reply that
+    cannot be read gives only `error` (7.1, with the suffix of a cut reply).
     """
-    reading = {"error": None, "notes": [], "actions": [], "dropped": 0, "memory": None}
+    reading = blank()
     calls = calls or []
     names = [call_name(call) for call in calls]
     if "act" not in names:

@@ -93,6 +93,35 @@ def test_a_copy_shares_the_config_however_deep_it_is_nested():
     assert m.participants["B-001"].balance != -1.0
 
 
+def test_a_copy_has_its_own_lists_of_the_messages_and_payments_it_shares():
+    m = full_market()
+    shadow = copy.deepcopy(m)
+    assert shadow.messages == m.messages and shadow.messages is not m.messages
+    assert shadow.payments == m.payments and shadow.payments is not m.payments
+    assert all(a is b for a, b in zip(shadow.messages + shadow.payments, m.messages + m.payments))
+    shadow.messages.append(state.Message(9, 1, "B-001", "everyone", "only on the copy"))
+    shadow.payments.pop()
+    assert len(m.messages) == len(shadow.messages) - 1 and len(m.payments) == len(shadow.payments) + 1
+
+
+def test_a_copy_of_a_participant_has_its_own_ledger_of_the_same_entries():
+    m = full_market()
+    p = m.participants["B-001"]
+    for q in (copy.deepcopy(p), copy.deepcopy(m).participants["B-001"]):
+        assert q == p and q is not p
+        assert q.ledger is not p.ledger and all(a is b for a, b in zip(q.ledger, p.ledger, strict=True))
+        for name in ("pending", "results", "memory", "unseen"):  # everything else that can change is its own
+            assert getattr(q, name) == getattr(p, name) and getattr(q, name) is not getattr(p, name)
+        q.ledger.append(("tests", 1.0))
+        p.ledger.append(("tokens", 0.5))
+        assert q.ledger == [("per-task budgets", 30.0), ("payments made", 10.0), ("tests", 1.0)]
+        assert p.ledger[2:] == [("tokens", 0.5)]
+        del p.ledger[2:]
+    shadow = copy.deepcopy(m)
+    state.charge(shadow, "B-001", 2.0, "tests")
+    assert len(shadow.participants["B-001"].ledger) == 3 and len(p.ledger) == 2 and p.balance == 60.0
+
+
 def test_a_checkpoint_restores_the_market_exactly():
     m = full_market()
     m.log = [].append
@@ -128,7 +157,7 @@ def test_ids():
     assert state.find(m, "contract", "contract-1-2").id == "contract-1-2"
     assert state.find(m, "contract", "1-2").id == "contract-1-2"
     assert state.find(m, "bid", 3).id == "bid-3"
-    for raw in ("Bid-3", " bid-3", "bid 3", "03", "３", 3.0, True, None, ["bid-3"], "3\n", "post-2"):
+    for raw in ("Bid-3", " bid-3", "bid 3", "03", "\uff13", 3.0, True, None, ["bid-3"], "3\n", "post-2"):
         assert state.find(m, "bid", raw) is None
     assert state.numbered("post", m.tasks["task-2"]) == "post-2"
     assert state.numbered("contract", m.tasks["task-1"]) == "contract-1-2"
@@ -150,6 +179,41 @@ def test_derived_values():
     assert [c.id for c in state.contracts_of(m, "M-002")] == ["contract-1-2"]
     assert [b.id for b in state.bids_on(m, "post-2")] == ["bid-3"]
     assert state.sealed(m, m.posts["post-2"]) and not state.sealed(m, m.posts["post-1-2"])
+
+
+def test_the_days_and_bids_several_modules_derive():
+    m = full_market()
+    ended, plain = m.contracts["contract-1"], m.contracts["contract-1-2"]
+    rejected, escrow = ended.deliveries[0], m.cfg["contracts"]["escrow"]
+    assert state.auto_day(m, rejected) == 2 + escrow["review_days"]  # processes.md 6.5
+    assert state.dispute_until(m, rejected) == 2 + escrow["dispute_window_days"]  # 6.6
+    assert state.ruling_day(rejected) == 3  # 6.6: the day after the dispute's
+    assert state.days_late(plain, plain.deliveries[0]) == 0 and state.days_late(ended, Delivery("R-1", 9, 1)) == 0
+    assert state.days_late(ended, Delivery("R-1", 12, 1)) == 3
+    post = m.posts["post-2"]  # made on day 3, round 1: round index 7 with 3 rounds a day
+    assert state.accept_from(m, post) == 7 + m.cfg["contracts"]["bid_window_rounds"] + 1 == 9  # processes.md 8
+    m.bids["bid-4"] = Bid("bid-4", "post-2", "M-002", 21.0)
+    m.bids["bid-5"] = Bid("bid-5", "post-2", "M-002", 19.0, status="withdrawn")
+    assert [b.id for b in state.bids_on(m, "post-2")] == ["bid-3", "bid-4"]
+    assert [b.id for b in state.live_bids(m, "post-2")] == ["bid-4"]  # episode.md 9.2: M-001 is out of business
+    assert state.own_bid(m, "post-2", "M-001").id == "bid-3" and state.own_bid(m, "post-2", "M-002").id == "bid-4"
+    assert state.own_bid(m, "post-1", "M-001") is None and state.live_bids(m, "post-1") == []
+
+
+def test_a_balance_covers_a_cost_within_the_tolerance():
+    p = market().participants["B-001"]  # actions-buyer.md 1.12
+    assert state.covers(p, 60.0) and state.covers(p, 60.0 + 9e-10) and not state.covers(p, 60.0 + 2e-9)
+
+
+def test_a_reply_is_counted_for_its_role_or_the_summarizer():
+    m = market()  # running.md 6.7
+    reply = type("Reply", (), {"input_tokens": 7, "output_tokens": 3, "cost": 0.25, "cost_known": True})
+    state.count_reply(m, "buyer", reply)
+    state.count_reply(m, "buyer", reply)
+    assert m.counts == {"buyer_calls": 2, "buyer_input_tokens": 14, "buyer_output_tokens": 6, "buyer_dollars": 0.5}
+    reply.cost_known = False
+    state.count_reply(m, "summarizer", reply)
+    assert m.counts["calls_unknown_cost"] == 1 and m.counts["summarizer_dollars"] == 0.25
 
 
 def test_an_escrow_state_follows_from_its_submissions():
@@ -281,6 +345,16 @@ def test_a_shadow_defers_like_the_market_and_keeps_its_own_list():
     assert shadow.participants["M-001"].balance == 60.0
 
 
+def test_a_dispute_deposit_that_is_not_finite_stops_the_episode():
+    # config.md 6, "Finiteness during an episode": dispute_fee_rate has no upper bound, so rate x price can overflow
+    m = full_market()
+    c = next(c for c in m.contracts.values() if c.form == "escrow")
+    assert state.dispute_fee(m, c) == round(m.cfg["contracts"]["escrow"]["dispute_fee_rate"] * c.price, 2)
+    m.cfg["contracts"]["escrow"]["dispute_fee_rate"] = 1e308
+    with pytest.raises(ArithmeticError, match=c.id):
+        state.dispute_fee(m, c)
+
+
 @pytest.mark.parametrize("amount", [float("inf"), float("nan")])
 def test_an_amount_that_is_not_finite_stops_the_episode(amount):
     m = market()
@@ -289,3 +363,13 @@ def test_an_amount_that_is_not_finite_stops_the_episode(amount):
     with pytest.raises(ArithmeticError):
         state.credit(m, "B-001", amount, "per-task budgets")
     assert m.participants["B-001"].ledger == []
+
+
+def test_what_a_copy_shares_cannot_be_changed():
+    # a market copy shares its messages and payments (the state a turn saw must not move): they are frozen
+    message = state.Message(1, 1, "B-001", "everyone", "text")
+    payment = Payment(3, 1, "B-001", "M-002", 10.0, "contract-1-2", 10.0, advance=True)
+    with pytest.raises(AttributeError):
+        message.text = "changed"
+    with pytest.raises(AttributeError):
+        payment.amount = 1.0

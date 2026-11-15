@@ -119,10 +119,16 @@ def _phi(x):
     return math.exp(-x * x / 2) / math.sqrt(2 * math.pi)
 
 
+def spread(cfg, worker, kind):
+    """Section 3.3: the cost spread text of a worker's runs of a kind, fresh or refine."""
+    production, cost = cfg["production"], config.expected_cost(cfg, worker, kind)
+    fixed = production[worker]["fee"] if worker == "employee" else 0
+    return PCT0(production["sig_c"] * (cost - fixed) / cost)
+
+
 def _worker(cfg, prefix, name):
     """Sections 3.3 and 4.3: the seventeen fields of a worker (name employee or manager)."""
-    p = cfg["production"]
-    w = p[name]
+    w = cfg["production"][name]
     mu, sd = w["mu"], w["sd"]
     a, b = (0 - mu) / sd, (10 - mu) / sd
     mass = config.Phi(b) - config.Phi(a)
@@ -136,13 +142,11 @@ def _worker(cfg, prefix, name):
     }
     for q in range(5, 10):
         out[f"reach{q}"] = PCT0((config.Phi(b) - config.Phi((q - mu) / sd)) / mass)
-    fixed = w["fee"] if name == "employee" else 0
     runs = (("fresh", "fresh", w["t_med"], "fresh runs"), ("refine", "ref", w["t_ref_med"], "refinements"))
     for kind, key, t, subject in runs:
-        cost = config.expected_cost(cfg, name, kind)
         out[f"{key}_days"] = duration_text(cfg, t, f"{name} {subject}")
-        out[f"{key}_cost"] = CREDITS(round(cost, 2))
-        out[f"{key}_spread"] = PCT0(p["sig_c"] * (cost - fixed) / cost)
+        out[f"{key}_cost"] = CREDITS(round(config.expected_cost(cfg, name, kind), 2))
+        out[f"{key}_spread"] = spread(cfg, name, kind)
     return {f"{prefix}_{k}": v for k, v in out.items()}
 
 

@@ -941,6 +941,14 @@ def test_charge(cost, rate, credits):
     assert models.charge(cost, rate) == credits == round(cost * rate, 6)
 
 
+@pytest.mark.parametrize("cost, rate", [(1e300, 1e10), (-1e300, 1e10), (math.inf, 1), (math.inf, 0), (math.nan, 1)])
+def test_a_charge_that_is_not_finite_stops_where_it_is_computed(cost, rate):
+    """config.md, 6, "Finiteness during an episode"."""
+    with pytest.raises(ArithmeticError, match=r"^a token charge is not finite: (inf|-inf|nan)$"):
+        models.charge(cost, rate)
+    assert models.charge(1e300, 1e8) == 1e308
+
+
 # --- 7: the cost tracker and the cap -------------------------------------------------------------------------
 
 
@@ -1038,6 +1046,7 @@ def test_the_mock_provider_is_market_mocks_backend(monkeypatch):
     stub = types.ModuleType("market.mock")
     stub.backend = lambda spec: seen.append(spec) or made
     monkeypatch.setitem(sys.modules, "market.mock", stub)
+    monkeypatch.setattr(sys.modules["market"], "mock", stub, raising=False)  # where an imported market.mock is found
     tracker = models.CostTracker(0.01)
     spec = resolved({"provider": "mock", "price_in_per_m": 0.15, "price_out_per_m": 1.875})
     assert models.backend(spec, LLM, tracker, env={}) is made and seen == [spec]
@@ -1073,3 +1082,13 @@ def test_a_key_a_request_cannot_carry_fails_the_setup(key):
                      "api_key_env": "K"})
     with pytest.raises(models.SetupError, match="K"):
         models.backend(spec, LLM, models.CostTracker(None), env={"K": key})
+
+
+def test_a_mock_seats_key_only_has_to_be_set(monkeypatch):
+    # models.md 3: "a mock spec that names an `api_key_env` needs that variable set, though the mock never uses the key"
+    stub = types.ModuleType("market.mock")
+    stub.backend = lambda spec: "the mock"
+    monkeypatch.setitem(sys.modules, "market.mock", stub)
+    monkeypatch.setattr(sys.modules["market"], "mock", stub, raising=False)
+    spec = resolved({"provider": "mock", "api_key_env": "MOCK_KEY"})
+    assert models.backend(spec, LLM, models.CostTracker(None), env={"MOCK_KEY": "cl\u00e9\n"}) == "the mock"

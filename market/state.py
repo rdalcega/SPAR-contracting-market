@@ -11,12 +11,11 @@ nothing, while its counters, being part of the copy, give its draws the values t
 """
 
 import copy
-import math
 import re
 from dataclasses import dataclass, field
 
 from . import config
-from .fmt import TEXT
+from .fmt import SUM, TEXT, finite
 
 OUT_OF_BUSINESS_NOTICE = "Your balance is at or below 0: you are out of business and cannot act."  # episode.md, 9.1
 BACK_IN_BUSINESS_NOTICE = "Your balance is positive again: you are back in business."  # episode.md, 9.3
@@ -49,6 +48,14 @@ class Participant:
     seen: int = 0  # messaging.md 3.4: how many messages the market held when its last view was built
     unseen: list = field(default_factory=list)  # messaging.md 3.4: indexes below `seen` of messages still new to it
     prompt_logged: bool = False  # rounds.md 3 step 1; running.md 5: its system prompt is logged once
+
+    def __deepcopy__(self, memo):
+        """A copy's ledger is its own list of the same entries, which never change once made (view.md, 8); the
+        rest is copied deep."""
+        new = copy.copy(self)
+        for name, value in vars(new).items():
+            setattr(new, name, list(value) if name == "ledger" else copy.deepcopy(value, memo))
+        return new
 
 
 @dataclass
@@ -147,7 +154,7 @@ class Contract:
     closed: str | None = None  # processes.md 6.9, episode.md 6: closed unreleased, "late" or at the "close"
 
 
-@dataclass
+@dataclass(frozen=True)  # a copy of the market shares it
 class Payment:
     day: int  # view.md 6
     round: int  # view.md 6
@@ -159,7 +166,7 @@ class Payment:
     advance: bool  # running.md 6.7: its contract had no delivery when it was made
 
 
-@dataclass
+@dataclass(frozen=True)  # a copy of the market shares it
 class Message:
     day: int  # messaging.md 2.5
     round: int  # messaging.md 2.5
@@ -208,10 +215,13 @@ class Market:
         return {**self.__dict__, "log": None}
 
     def __deepcopy__(self, memo):
-        """A copy shares the config, which no rule changes (and which may be nested deeper than a copy can go)."""
+        """A copy shares the config, which no rule changes (and which may be nested deeper than a copy can go),
+        and the messages and payments themselves, which never change once made; its lists of them are its own."""
         new = copy.copy(self)
         for name, value in vars(new).items():
-            if name != "cfg":
+            if name in ("messages", "payments"):
+                setattr(new, name, list(value))
+            elif name != "cfg":
                 setattr(new, name, copy.deepcopy(value, memo))
         return new
 
@@ -226,6 +236,16 @@ def emit(m, record, /, **fields):
 def count(m, name, n=1):
     """Add to a metric count (running.md, 6.7)."""
     m.counts[name] = m.counts.get(name, 0) + n
+
+
+def count_reply(m, who, reply):
+    """A model call's reply in the metric counts of its role or of the summarizer (running.md, 6.7)."""
+    count(m, f"{who}_calls")
+    count(m, f"{who}_input_tokens", reply.input_tokens)
+    count(m, f"{who}_output_tokens", reply.output_tokens)
+    count(m, f"{who}_dollars", reply.cost)
+    if not reply.cost_known:
+        count(m, "calls_unknown_cost")
 
 
 def notify(m, pid, text):
@@ -274,11 +294,9 @@ def new_bid_id(m):
 # Money (episode.md, 9; rounds.md, 7; view.md, 8)
 
 
-def _finite(x, what):
-    """config.md, 6, "Finiteness during an episode": an amount that is not finite stops the episode."""
-    if not math.isfinite(x):
-        raise ArithmeticError(f"{what} is not finite: {x!r}")
-    return x
+def total(amounts, what):
+    """The SUM of amounts (README.md), finite like any amount used, shown or logged (config.md, 6)."""
+    return finite(SUM(amounts), what)
 
 
 def debit(m, pid, amount, category, check=False):
@@ -288,7 +306,7 @@ def debit(m, pid, amount, category, check=False):
     whatever its amount: a manager in business whose balance is then at or below 0 is out of business (9.1).
     """
     p = m.participants[pid]
-    p.balance = _finite(p.balance - _finite(amount, category), f"the balance of {pid}")
+    p.balance = finite(p.balance - finite(amount, category), f"the balance of {pid}")
     p.ledger.append((category, amount))
     emit(m, "money", participant=pid, kind=category, amount=-amount, balance=p.balance)
     if check and p.role == "manager" and not p.out_of_business and p.balance <= 0:
@@ -303,7 +321,7 @@ def charge(m, pid, amount, category):
 
     Returns the amount charged, 0.0 when nothing was.
     """
-    amount = round(_finite(amount, category), 6)
+    amount = round(finite(amount, category), 6)
     if amount <= 0:
         return 0.0
     debit(m, pid, amount, category, check=True)
@@ -313,7 +331,7 @@ def charge(m, pid, amount, category):
 def _land(m, pid, amount, cause):
     """An amount reaches a balance; a manager out of business that it leaves above 0 is back (9.3)."""
     p = m.participants[pid]
-    p.balance = _finite(p.balance + amount, f"the balance of {pid}")
+    p.balance = finite(p.balance + amount, f"the balance of {pid}")
     if p.out_of_business and p.balance > 0:
         p.out_of_business = False
         count(m, "back_in_business_events")
@@ -329,7 +347,7 @@ def credit(m, pid, amount, category):
     """
     wait = m.actor is not None and pid != m.actor
     kind = DEFERRED[category] if wait else None  # rounds.md 7: no other credit is made to another participant
-    m.participants[pid].ledger.append((category, _finite(amount, category)))
+    m.participants[pid].ledger.append((category, finite(amount, category)))
     emit(m, "money", participant=pid, kind=category, amount=amount, deferred=wait)
     if wait:
         m.deferred.append(Credit(pid, amount, kind, m.actor))
@@ -353,9 +371,14 @@ def now(m):
     return config.round_index(m.cfg, m.day, m.round)
 
 
+def accept_from(m, post):
+    """The round index from which a post's bids are open and can be accepted (processes.md, 8)."""
+    return config.opening_round(m.cfg, config.round_index(m.cfg, post.day, post.round))
+
+
 def sealed(m, post):
     """Whether a post's bids are sealed from its buyer: by the round index alone (processes.md, 8)."""
-    return now(m) < config.opening_round(m.cfg, config.round_index(m.cfg, post.day, post.round))
+    return now(m) < accept_from(m, post)
 
 
 def of_role(m, role):
@@ -363,9 +386,19 @@ def of_role(m, role):
     return [p for p in m.participants.values() if p.role == role]
 
 
-def bids_on(m, post_id, status="open"):
-    """A post's bids of one status, in the order first placed (actions-buyer.md, 1.6)."""
-    return [b for b in m.bids.values() if b.post == post_id and b.status == status]
+def bids_on(m, post_id):
+    """A post's open bids, in the order first placed (actions-buyer.md, 1.6)."""
+    return [b for b in m.bids.values() if b.post == post_id and b.status == "open"]
+
+
+def live_bids(m, post_id):
+    """A post's open bids whose managers are in business, in the order first placed (episode.md, 9.2)."""
+    return [b for b in bids_on(m, post_id) if not m.participants[b.manager].out_of_business]
+
+
+def own_bid(m, post_id, manager):
+    """A manager's open bid on a post, or None: it has at most one (actions-manager.md, 2)."""
+    return next((b for b in bids_on(m, post_id) if b.manager == manager), None)
 
 
 def contracts_of(m, pid):
@@ -381,6 +414,27 @@ def due(m, c):
 def close_day(m, c):
     """close(c): an escrow's close day, due + escrow_close_days (processes.md, 6.9)."""
     return due(m, c) + config.escrow_close_days(m.cfg)
+
+
+def days_late(c, d):
+    """The days a delivery or submission is late: made after its contract's deadline day (processes.md, 3.2)."""
+    return max(0, d.day - c.deadline)
+
+
+def auto_day(m, d):
+    """The day at whose start a submission under review is released (processes.md, 6.5)."""
+    return d.day + m.cfg["contracts"]["escrow"]["review_days"]
+
+
+def dispute_until(m, d):
+    """The last day a rejection can be disputed (processes.md, 6.6)."""
+    return d.decided + m.cfg["contracts"]["escrow"]["dispute_window_days"]
+
+
+def ruling_day(d):
+    """The day at whose start the arbiter rules on a disputed rejection: the day after the dispute
+    (processes.md, 6.6)."""
+    return d.dispute.day + 1
 
 
 def result(c, label):
@@ -445,8 +499,7 @@ def open_dispute(c):
 def disputable(m, c):
     """The latest submission is a rejection, not disputed, still within its window (view-contracts.md, 2.1)."""
     d = latest(c)
-    window = m.cfg["contracts"]["escrow"]["dispute_window_days"]
-    return bool(d) and d.outcome == "rejected" and d.dispute is None and m.day <= d.decided + window
+    return bool(d) and d.outcome == "rejected" and d.dispute is None and m.day <= dispute_until(m, d)
 
 
 def setup_fee(m, c):
@@ -456,7 +509,8 @@ def setup_fee(m, c):
 
 def dispute_fee(m, c):
     """The dispute deposit, which is also the arbiter's fee (processes.md, 6.6)."""
-    return round(m.cfg["contracts"]["escrow"]["dispute_fee_rate"] * c.price, 2)
+    fee = round(m.cfg["contracts"]["escrow"]["dispute_fee_rate"] * c.price, 2)
+    return finite(fee, f"the dispute deposit of {c.id}")
 
 
 def owes_fee(m, c):
@@ -472,6 +526,11 @@ def owed(c):
 def paid_in_full(c):
     """processes.md, 5.2."""
     return c.paid >= c.price - 1e-6
+
+
+def covers(p, cost):
+    """Whether a balance covers a cost, within the tolerance of the balance check (actions-buyer.md, 1.12)."""
+    return p.balance + 1e-9 >= cost
 
 
 def beyond(m, c):

@@ -440,6 +440,12 @@ def seat_spec(cfg, role, seat):
     return cfg["models"][f"{role}_seats"].get(str(seat), cfg["models"][f"{role}s"])
 
 
+def seat_specs(cfg):
+    """3.4.2: the spec of every seat, by role, in seat order."""
+    return {role: [seat_spec(cfg, role, seat) for seat in range(cfg["participants"][role + "s"])]
+            for role in ("buyer", "manager")}
+
+
 def horizon_cap(cfg):
     """6.1: horizon_min_days + n, n the smallest whole number with (1 - horizon_end_prob)^n < 0.01."""
     log_stay = math.log1p(-cfg["time"]["horizon_end_prob"])

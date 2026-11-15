@@ -3,7 +3,9 @@
 import json
 import math
 
-from market.fmt import CR, CREDITS, FRAC, G, INT, PCT, PCT0, PY, REPR, SUM, TEXT, F, unit
+import pytest
+
+from market.fmt import CR, CREDITS, FRAC, G, INT, PCT, PCT0, PY, REPR, SUM, TEXT, F, finite, unit
 
 
 def test_G():
@@ -87,3 +89,11 @@ def test_unit():
     assert unit("1", "day") == "1 day" and unit("2", "day") == "2 days"
     assert unit("1.00", "credit") == "1.00 credits"
     assert unit("1", "run of its own", "runs of its own") == "1 run of its own"
+
+
+def test_finite():
+    """config.md, 6, "Finiteness during an episode"."""
+    assert finite(2.5, "x") == 2.5 and finite(7, "x") == 7 and finite(-1e308, "x") == -1e308
+    for x, shown in ((math.inf, "inf"), (-math.inf, "-inf"), (math.nan, "nan")):
+        with pytest.raises(ArithmeticError, match=f"^the cost of a run is not finite: {shown}$"):
+            finite(x, "the cost of a run")

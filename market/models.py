@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 from .config import FREE_PROVIDERS
-from .fmt import F, G
+from .fmt import F, G, finite
 
 _PROVIDERS = {  # section 3: (base URL, API key variable) when the spec gives none, of the providers that have one
     "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
@@ -94,7 +94,7 @@ class CostTracker:
 
 def charge(cost, credits_per_usd):
     """Section 5: a reply's token charge in credits; a charge of 0 or less is skipped by the caller."""
-    return round(cost * credits_per_usd, 6)
+    return finite(round(cost * credits_per_usd, 6), "a token charge")
 
 
 _LONGEST = 1e9  # seconds: the longest time limit a socket takes; no call lasts that long
@@ -105,22 +105,29 @@ def estimate(s):
     return max(1, len(s) // 4)
 
 
+def resolved(spec):
+    """Section 3: a spec with its provider's base URL and key variable where it gives none, and a mock spec's
+    missing prices as 0 (running.md, 7.1)."""
+    base, variable = _PROVIDERS.get(spec["provider"], (None, None))
+    mock = spec["provider"] == "mock"
+    prices = {key: spec.get(key) or 0 for key in ("price_in_per_m", "price_out_per_m")} if mock else {}
+    return {"api_key_env": variable, **spec, **prices, "base_url": spec.get("base_url") or base}
+
+
 def backend(spec, llm, tracker, *, env=None, sleep=time.sleep, clock=time.time):
     """Section 3, "Setting up": the backend of one model spec, or SetupError naming an unset key variable."""
-    base, variable = _PROVIDERS.get(spec["provider"], (None, None))
-    if "api_key_env" in spec:
-        variable = spec["api_key_env"]
+    base, variable = resolved(spec)["base_url"], resolved(spec)["api_key_env"]
     key = None
     if variable is not None:
         key = (os.environ if env is None else env).get(variable)
         if not key:
             raise SetupError(f"set {variable} in your environment")
-        if not (key.isascii() and key.isprintable()):
-            raise SetupError(f"the value of {variable} holds characters a request cannot carry")
     if spec["provider"] == "mock":
         from . import mock
         return mock.backend(spec)
-    return _Backend(spec, llm, tracker, spec.get("base_url") or base, key, sleep, clock)
+    if key and not (key.isascii() and key.isprintable()):
+        raise SetupError(f"the value of {variable} holds characters a request cannot carry")
+    return _Backend(spec, llm, tracker, base, key, sleep, clock)
 
 
 class _Lost(Exception):
