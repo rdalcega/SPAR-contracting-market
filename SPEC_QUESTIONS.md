@@ -1314,7 +1314,7 @@ GPT review of the design. Q30 is of the same family.
   `configs/qwen35_9b_reasoning_all.yaml` take that override (tool_choice `auto` on every call of a turn), so
   they run a harness that differs from 4.1.
 
-### Q117. Provider claude_code cannot carry everything an adapter must carry
+### Q118. Provider claude_code cannot carry everything an adapter must carry
 - Where: `models.md`, section 3, last paragraph ("Another provider ... may be added behind the same interface"), with
   2.1 (the call's inputs: messages, functions, tool_choice, temperature) and 2.3 (the messages carried back)
 - Quote: "Its adapter must take the inputs of 2.1, carry the messages of 2.3 (function calls, tool answers and, where
@@ -1327,10 +1327,15 @@ GPT review of the design. Q30 is of the same family.
   working folder, platform, model name and a note on untrusted files; the functions are named `mcp__market__<name>`.
   None of these has a switch that keeps subscription login (`--bare` does, but takes only an API key).
 - Reading taken: the provider is added with these departures, listed in the module's docstring: tool_choice is not
-  sent (so neither `"required"` nor a forced `act` is enforced, and a correction still shows `compute`); a spec must
-  give `temperature: null`, and `extra_body` may hold only `reasoning.effort`; on the text path (`turns.md` 11.4)
-  the model keeps its own reply and the body goes back as the result of its last pending call ("not run" for the
-  earlier ones) or as a user message; reasoning is Claude's thinking summary; cost is the tokens at the spec's
-  prices with cache tokens as plain input; a failure within a chain is not retried. One consequence runs against
-  Q116: with no forced tool_choice, Claude seats on `claude_code` do think, where the same model on OpenRouter does
-  not. Whether runs on this provider count as "the same market" for your purposes is for you to decide.
+  sent, so `"required"` is not enforced; where a call allows only `act` (a correction, or a forced `act` in the
+  decide chain) the model, which still sees `compute`, is told "compute is not available now: call act" at the start
+  of what the call delivers, and the first response that calls only `compute` is answered with that notice and the
+  model asked again (that response's tokens and thinking go with the reply); a spec must give `temperature: null`,
+  and `extra_body` may hold only `reasoning.effort`; on the text path (`turns.md` 11.4) the model keeps its own reply and the body goes back as the result of its last pending call
+  ("not run" for the earlier ones) or as a user message; reasoning is Claude's thinking summary; cost is the tokens
+  at the spec's prices with cache tokens as plain input; a failure within a chain is not retried. One consequence
+  runs against Q116: with no forced tool_choice, Claude seats on `claude_code` do think, where the same model on
+  OpenRouter does not. The agents get none of Claude Code's own tools (built-in tools off, no MCP server but the
+  market's): the departures are text and protocol, not power.
+- Decided (2026-11-16, by the user): runs on this provider do not count as the same market. The notice and the
+  answer to a withheld `compute` call were chosen by the user.

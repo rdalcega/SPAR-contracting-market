@@ -27,16 +27,20 @@ keeps subscription login):
 - a reminder before the view carries today's date, and a system message after it the session's working folder, the
   platform, the model's name and Claude Code's note on untrusted files;
 - the functions are named mcp__market__<name> (the replies give the market its own names back);
-- tool_choice is not sent: Claude Code has none, so neither "required" nor a forced act is enforced;
-- a session's functions are those of its first call: Claude Code fixes its tools when the session starts, so a
-  correction, which offers act only (turns.md 11.5), still shows compute;
+- tool_choice is not sent: Claude Code has none, so "required" is not enforced;
+- a session's functions are those of its first call, as Claude Code fixes its tools when the session starts. A call
+  that allows fewer (a correction offers act only, turns.md 11.5; a forced act allows act only, 4.1) gets the
+  notice "compute is not available now: call act" at the start of the text that carries the correction, else of
+  the first text it delivers; the first response that calls only functions it withholds is answered with that
+  notice and not returned: Claude Code asks the model again and the next response is read;
 - no temperature (a spec must give temperature: null), and extra_body may hold only reasoning.effort;
 - reasoning is the summary of its thinking that Claude returns (display "summarized"), never the raw thinking;
 - input tokens count cache reads and writes as plain input, at the spec's input price;
 - a failure within a chain is not retried, as a session cannot be replayed: a subscription limit reached there loses
   the turn (a first call waits it out);
-- a response the market does not get (Claude Code's own continuation, or its new request after a call of a function
-  it does not serve) counts toward the cost cap, not toward a participant's charges.
+- a response the market does not get (Claude Code's own continuation, its new request after a call of a function it
+  does not serve, or one answered with the notice above) adds its tokens and its thinking to the next reply, so it
+  is charged and logged with it; when the session ends first, its cost counts toward the cost cap only.
 """
 
 import atexit
@@ -101,6 +105,26 @@ def _tokens_in(usage):
     return _count(usage, "input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
 
 
+def _allowed(functions, tool_choice):
+    """The names of the functions a call allows: those offered, or only the one its tool_choice forces."""
+    names = [f["function"]["name"] for f in functions]
+    if tool_choice == "none":
+        return []
+    forced = (tool_choice.get("function") or {}).get("name") if isinstance(tool_choice, dict) else None
+    return [forced] if forced in names else names
+
+
+def _notice(withheld, allowed):
+    """What the model is told of functions its session shows but the call withholds."""
+    verb = "is" if len(withheld) == 1 else "are"
+    then = f": call {' or '.join(allowed)}" if allowed else ""
+    return f"{' and '.join(withheld)} {verb} not available now{then}"
+
+
+def _noticed(notice, text):
+    return f"{notice}\n\n{text}" if notice else text
+
+
 def _text(message):
     content = message.get("content")
     return content if isinstance(content, str) else "" if content is None else json.dumps(content)
@@ -121,15 +145,17 @@ class _Backend:
     def call(self, messages, functions=None, tool_choice=None):
         """2.1 to 2.4: one call, the Reply or CallFailed. tool_choice is not sent (module docstring)."""
         began = self.clock()
+        allowed = _allowed(functions or [], tool_choice)
         session = self._take(messages)
         try:
             if session is None:
-                session, reply = self._start(messages, functions or [])
+                session, reply = self._start(messages, functions or [], allowed)
             else:
                 deadline = began + self.timeout  # 4.3: one time limit for the whole attempt
+                withheld, notice = session.withhold(allowed)
                 try:
-                    session.deliver(messages[len(session.seen) + 1:], deadline)
-                    reply = session.read(deadline)
+                    session.deliver(messages[len(session.seen) + 1:], deadline, notice)
+                    reply = session.read(deadline, withheld, notice)
                 except _Lost as e:
                     raise CallFailed(f"'{self.model}': {e}") from None
             reply = self._priced(reply)
@@ -166,8 +192,12 @@ class _Backend:
             if session in self.sessions:
                 self.sessions.remove(session)
         session.close()
+        tokens_in, tokens_out, _ = session.carried
+        if tokens_in or tokens_out:  # responses no reply took up: their cost counts toward the cost cap
+            reply = self._priced(Reply(input_tokens=tokens_in, output_tokens=tokens_out))
+            self.tracker.add(reply.cost, reply.cost_known)
 
-    def _start(self, messages, functions):
+    def _start(self, messages, functions, allowed):
         """A new session's first step; a session that ends without a reply is started again, as 4.4 to 4.6 retry."""
         roles = [m.get("role") for m in messages]
         if roles not in (["system", "user"], ["user"]):
@@ -181,8 +211,9 @@ class _Backend:
                 session = _Session(self, system, functions)  # one that cannot start cleans itself up
                 with self.lock:
                     self.sessions.append(session)
-                session.say(_text(messages[-1]), deadline)
-                return session, session.read(deadline)
+                withheld, notice = session.withhold(allowed)
+                session.say(_noticed(notice, _text(messages[-1])), deadline)
+                return session, session.read(deadline, withheld, notice)
             except BaseException as e:
                 if session is not None:
                     self._drop(session)
@@ -214,11 +245,6 @@ class _Backend:
         reply.cost, reply.cost_source = cost, "computed"
         return reply
 
-    def untold(self, usage):
-        """A response the market does not get: its cost still counts toward the cost cap (module docstring)."""
-        reply = self._priced(Reply(input_tokens=_tokens_in(usage), output_tokens=_count(usage, "output_tokens")))
-        self.tracker.add(reply.cost, reply.cost_known)
-
     def close(self):
         with self.lock:
             sessions, self.sessions = self.sessions, []
@@ -237,6 +263,8 @@ class _Session:
         self.until = None  # the reset time of a subscription limit Claude Code reported as hit
         self.events = queue.Queue()
         self.proc, self.server, self.conn, self.connected = None, None, None, threading.Event()
+        self.tools = [f["function"]["name"] for f in functions]  # the functions it shows, fixed at its start
+        self.carried = (0, 0, "")  # input tokens, output tokens, thinking of responses no reply has taken up
         short = len(tempfile.gettempdir()) > 60 and os.path.isdir("/tmp")  # a socket path fits in 104 bytes
         self.dir = tempfile.mkdtemp(prefix="cc-", dir="/tmp" if short else None)
         try:
@@ -282,6 +310,17 @@ class _Session:
         except OSError as e:
             raise _Lost(f"Claude Code could not be started: {e}") from None
         threading.Thread(target=self._pump, daemon=True).start()
+
+    def withhold(self, allowed):
+        """The functions this session shows that a call does not allow, and the notice that says so (or None)."""
+        withheld = [n for n in self.tools if n not in allowed]
+        return withheld, _notice(withheld, allowed) if withheld else None
+
+    def _carry(self, blocks, usage):
+        """A response the market does not get: its tokens and thinking go with the next reply."""
+        tokens_in, tokens_out, thinking = self.carried
+        self.carried = (tokens_in + _tokens_in(usage), tokens_out + _count(usage, "output_tokens"),
+                        thinking + "".join(b.get("thinking", "") for b in blocks if b.get("type") == "thinking"))
 
     def _accept(self):
         try:
@@ -329,11 +368,11 @@ class _Session:
                 self.ended = False
             else:  # Claude Code's own continuation of the previous turn; its served calls are not run
                 blocks, usage, stop = response
+                self._carry(blocks, usage)
                 served = [b.get("id") for b in blocks
                           if b.get("type") == "tool_use" and str(b.get("name", "")).startswith(PREFIX)]
                 if stop == "tool_use" and served:
                     self.answer(dict.fromkeys(served, NOT_RUN), deadline)
-                self.owner.untold(usage)
         line = json.dumps({"type": "user", "message": {"role": "user", "content": text}})
         late = threading.Timer(max(0.0, deadline - self.clock()), self.proc.kill)  # a child that stops reading
         late.start()
@@ -359,39 +398,50 @@ class _Session:
             raise _Lost(f"the market's tool server is gone: {e}") from None
         self.pending = []
 
-    def deliver(self, suffix, deadline):
-        """The messages after the reply's assistant message, as the module docstring maps them."""
+    def deliver(self, suffix, deadline, notice=None):
+        """The messages after the reply's assistant message, as the module docstring maps them; a notice opens the
+        text that carries the correction body (text path), else the first text delivered."""
         roles = [m.get("role") for m in suffix]
         if self.pending and roles == ["tool"] * len(self.pending) and (
                 sorted(m.get("tool_call_id") for m in suffix) == sorted(self.pending)):
-            self.answer({m["tool_call_id"]: _text(m) for m in suffix}, deadline)
+            texts = [_text(m) for m in suffix]
+            texts[0] = _noticed(notice, texts[0])
+            self.answer({m["tool_call_id"]: t for m, t in zip(suffix, texts)}, deadline)
         elif roles == ["user"] and self.pending:
             answers = dict.fromkeys(self.pending[:-1], NOT_RUN)
-            answers[self.pending[-1]] = _text(suffix[0])
+            answers[self.pending[-1]] = _noticed(notice, _text(suffix[0]))
             self.answer(answers, deadline)
         elif roles == ["user"]:
-            self.say(_text(suffix[0]), deadline)
+            self.say(_noticed(notice, _text(suffix[0])), deadline)
         else:
             raise CallFailed(f"provider claude_code cannot continue a conversation with {roles} after the reply "
                              f"(pending calls: {len(self.pending)})")
 
-    def read(self, deadline):
-        """The next reply. A response calling a function Claude Code does not serve (a name without PREFIX) is not
-        one: Claude Code answers that call with an error and asks the model again itself, so it is skipped, its
-        served calls answered NOT_RUN."""
+    def read(self, deadline, withheld=(), notice=None):
+        """The next reply. Two responses are not one, and are skipped (their cost still counts):
+        - one calling a function Claude Code does not serve (a name without PREFIX): Claude Code answers that call
+          with an error and asks the model again itself; its served calls are answered NOT_RUN;
+        - the first one whose calls are all of withheld functions: they are answered with the notice, and the model
+          asked again (once: a second such response is the reply)."""
+        pushed = False
         while True:
             response, ending = self._response(deadline)
             if response is None:
                 raise _Lost(f"Claude Code's turn ended without a reply: {ending}", self.until)
             blocks, usage, stop = response
             uses = [b for b in blocks if b.get("type") == "tool_use"]
-            if stop == "tool_use" and any(not str(b.get("name", "")).startswith(PREFIX) for b in uses):
-                served = [b.get("id") for b in uses if str(b.get("name", "")).startswith(PREFIX)]
-                if served:
-                    self.answer(dict.fromkeys(served, NOT_RUN), deadline)
-                self.owner.untold(usage)
-                continue
-            return self._reply(blocks, usage, stop)
+            served = [(b.get("id"), str(b.get("name", ""))[len(PREFIX):]) for b in uses
+                      if str(b.get("name", "")).startswith(PREFIX)]
+            if stop == "tool_use" and uses and len(served) < len(uses):
+                answer = NOT_RUN
+            elif (stop == "tool_use" and uses and withheld and not pushed
+                  and all(name in withheld for _, name in served)):
+                answer, pushed = notice, True
+            else:
+                return self._reply(blocks, usage, stop)
+            self._carry(blocks, usage)
+            if served:
+                self.answer({use_id: answer for use_id, _ in served}, deadline)
 
     def _response(self, deadline):
         """The next model response Claude Code completes, (blocks, usage, stop_reason), from its stream events;
@@ -430,11 +480,13 @@ class _Session:
                  for b in blocks if b.get("type") == "tool_use"]
         self.pending = [c["id"] for c in calls] if stop == "tool_use" else []
         self.ended = stop != "tool_use"
+        tokens_in, tokens_out, thinking = self.carried
+        self.carried = (0, 0, "")
         return Reply(
             text="".join(b.get("text", "") for b in blocks if b.get("type") == "text"),
             tool_calls=calls or None,
-            reasoning="".join(b.get("thinking", "") for b in blocks if b.get("type") == "thinking"),
-            input_tokens=_tokens_in(usage), output_tokens=_count(usage, "output_tokens"),
+            reasoning=thinking + "".join(b.get("thinking", "") for b in blocks if b.get("type") == "thinking"),
+            input_tokens=tokens_in + _tokens_in(usage), output_tokens=tokens_out + _count(usage, "output_tokens"),
             finish_reason=_STOPS.get(stop, stop))
 
     def close(self):

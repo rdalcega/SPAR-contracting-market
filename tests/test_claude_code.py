@@ -9,6 +9,7 @@ import sys
 import tempfile
 import threading
 import time
+import types
 
 import pytest
 
@@ -23,6 +24,8 @@ COMPUTE = {"type": "function", "function": {"name": "compute", "description": "r
 ACT = {"type": "function", "function": {"name": "act", "description": "end", "parameters": {
     "type": "object", "properties": {"memory": {"type": "string"}}}}}
 SYSTEM, VIEW = {"role": "system", "content": "You are B-1."}, {"role": "user", "content": "Day 1, round 1."}
+NOTICE = "compute is not available now: call act\n\n"  # what opens a call that withholds compute
+FORCED = {"type": "function", "function": {"name": "act"}}
 
 
 def text(t, stop="end_turn", usage=(10, 0, 0, 5)):
@@ -133,7 +136,76 @@ def test_a_chain_continues_one_session_with_native_tool_results(tmp_path):
     assert third.tool_calls[0]["function"]["arguments"] == '{"memory": "fixed"}'
     assert len(fake.entries("launch")) == 1
     results = fake.entries("tool_result")
-    assert results[:2] == [{"toolu_1_0": "out: 1"}, {"toolu_2_0": "your act call's actions could not be read"}]
+    assert results[:2] == [{"toolu_1_0": NOTICE + "out: 1"},
+                           {"toolu_2_0": NOTICE + "your act call's actions could not be read"}]
+
+
+def test_a_call_that_allows_compute_gets_no_notice(tmp_path):
+    fake = Fake(tmp_path, [calls(("compute", {"code": "x"})), calls(("act", {"memory": "m"}))])
+    b = fake.backend()
+    first = b.call([SYSTEM, VIEW], [COMPUTE, ACT], "required")
+    b.call([SYSTEM, VIEW, assistant(first)] + answer(first, "out: 1"), [COMPUTE, ACT], "required")
+    assert fake.entries("tool_result") == [{"toolu_1_0": "out: 1"}]
+
+
+def test_a_call_of_compute_when_withheld_is_answered_with_the_notice(tmp_path):
+    fake = Fake(tmp_path, [calls(("act", {"memory": "bad"})), calls(("compute", {"code": "y"}), usage=(50, 0, 0, 9)),
+                           calls(("act", {"memory": "fixed"}), usage=(10, 0, 0, 5))])
+    b = fake.backend()
+    first = b.call([SYSTEM, VIEW], [COMPUTE, ACT], "required")
+    before = fake.tracker.total
+    fixed = b.call([SYSTEM, VIEW, assistant(first)] + answer(first, "unreadable"), [ACT], FORCED)
+    assert fixed.tool_calls[0]["function"]["arguments"] == '{"memory": "fixed"}'
+    assert fake.entries("tool_result") == [{"toolu_1_0": NOTICE + "unreadable"},
+                                           {"toolu_2_0": "compute is not available now: call act"}]
+    # the skipped response goes with the reply: charged and counted with it
+    assert (fixed.input_tokens, fixed.output_tokens) == (60, 14)
+    assert fake.tracker.total - before == pytest.approx(fixed.cost) == pytest.approx(60 * 0.10 / 1e6 + 14 * 0.50 / 1e6)
+
+
+def test_withheld_calls_are_pushed_back_once(tmp_path):
+    fake = Fake(tmp_path, [calls(("act", {"memory": "bad"})),
+                           calls(("compute", {"code": "y"}), thinking="I want numbers."),
+                           calls(("compute", {"code": "z"}), thinking="Still.")])
+    b = fake.backend()
+    first = b.call([SYSTEM, VIEW], [COMPUTE, ACT], "required")
+    reply = b.call([SYSTEM, VIEW, assistant(first)] + answer(first, "unreadable"), [ACT], FORCED)
+    assert reply.tool_calls[0]["function"]["name"] == "compute"  # the market reads it: no act call
+    assert reply.reasoning == "I want numbers.Still."
+
+
+def test_a_first_call_that_withholds_a_function_opens_with_the_notice(tmp_path):
+    fake = Fake(tmp_path, [calls(("act", {"memory": "m"}))])
+    fake.backend().call([SYSTEM, VIEW], [COMPUTE, ACT], FORCED)
+    assert fake.entries("user") == [NOTICE + "Day 1, round 1."]
+
+
+def test_the_notice():
+    assert claude_code._notice(["compute"], ["act"]) == "compute is not available now: call act"
+    assert claude_code._notice(["a", "b"], ["c", "d"]) == "a and b are not available now: call c or d"
+    assert claude_code._notice(["compute", "act"], []) == "compute and act are not available now"
+    assert claude_code._allowed([COMPUTE, ACT], "none") == []
+    assert claude_code._allowed([COMPUTE, ACT], {"type": "function", "function": {"name": "other"}}) == [
+        "compute", "act"]
+
+
+def test_calls_without_ids_are_still_served(tmp_path, monkeypatch):
+    blocks = [{"type": "tool_use", "name": claude_code.PREFIX + n, "json": "{}"} for n in ("compute", "act")]
+    session = types.SimpleNamespace(pending=[], ended=False, carried=(0, 0, ""))
+    responses = iter([(blocks, {}, "tool_use")])
+    session._response = lambda deadline: (next(responses), None)
+    session._reply = lambda *a: claude_code._Session._reply(session, *a)
+    reply = claude_code._Session.read(session, time.time() + 5, ["compute"], "n")
+    assert [c["function"]["name"] for c in reply.tool_calls] == ["compute", "act"]
+
+
+def test_a_withheld_call_beside_an_allowed_one_is_a_reply(tmp_path):
+    fake = Fake(tmp_path, [calls(("act", {"memory": "bad"})),
+                           calls(("compute", {"code": "y"}), ("act", {"memory": "m"}))])
+    b = fake.backend()
+    first = b.call([SYSTEM, VIEW], [COMPUTE, ACT], "required")
+    reply = b.call([SYSTEM, VIEW, assistant(first)] + answer(first, "unreadable"), [ACT], FORCED)
+    assert [c["function"]["name"] for c in reply.tool_calls] == ["compute", "act"]
 
 
 def test_text_path_answers_pending_calls(tmp_path):
@@ -145,7 +217,7 @@ def test_text_path_answers_pending_calls(tmp_path):
     b.call([SYSTEM, VIEW, {"role": "assistant", "content": "(an empty reply)"}, body], [ACT])
     ids = [c["id"] for c in first.tool_calls]
     results = {k: v for entry in fake.entries("tool_result") for k, v in entry.items()}
-    assert results == {ids[0]: claude_code.NOT_RUN, ids[1]: "your reply did not call act: ..."}
+    assert results == {ids[0]: claude_code.NOT_RUN, ids[1]: NOTICE + "your reply did not call act: ..."}
 
 
 def test_text_path_after_a_reply_without_calls_is_a_user_message(tmp_path):
@@ -156,7 +228,7 @@ def test_text_path_after_a_reply_without_calls_is_a_user_message(tmp_path):
     body = {"role": "user", "content": "your reply was not a function call"}
     second = b.call([SYSTEM, VIEW, assistant(first), body], [ACT])
     assert second.tool_calls[0]["function"]["name"] == "act"
-    assert fake.entries("user") == ["Day 1, round 1.", "your reply was not a function call"]
+    assert fake.entries("user") == ["Day 1, round 1.", NOTICE + "your reply was not a function call"]
     assert len(fake.entries("launch")) == 1
 
 
@@ -254,8 +326,8 @@ def test_a_call_of_a_function_claude_code_does_not_serve_is_skipped(tmp_path):
     assert reply.tool_calls[0]["function"]["arguments"] == '{"memory": "named"}'
     assert fake.entries("tool_error") == ["toolu_1_0"]
     assert fake.entries("tool_result") == [{"toolu_1_1": claude_code.NOT_RUN}]
-    # both responses count toward the cost cap; the reply's own cost is only its own
-    assert reply.cost == pytest.approx(10 * 0.10 / 1e6 + 5 * 0.50 / 1e6)
+    # the skipped response goes with the reply: both are charged and counted
+    assert reply.cost == pytest.approx(110 * 0.10 / 1e6 + 15 * 0.50 / 1e6)
     assert fake.tracker.total == pytest.approx(110 * 0.10 / 1e6 + 15 * 0.50 / 1e6)
 
 
