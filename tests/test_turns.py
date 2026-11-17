@@ -40,6 +40,7 @@ CFG = {
                 "code_chars": 20000},
     "turns": {"max_actions": 6, "memory_chars": 2000},
     "credits_per_usd": 1.0,
+    "message_channels": "off",
 }
 SYSTEM = {"role": "system", "content": "the system prompt"}
 VIEW = {"role": "user", "content": "the view"}
@@ -138,7 +139,7 @@ def test_example_turn_with_compute():
     assert chain.steps[1]["request"]["messages"] == second["messages"]
     assert programs.ran == ["print(sum(range(10)))"]
     assert choices(backend) == ["required", ACT_FORCED]
-    assert [request["functions"] for request in backend.requests] == [functions(CFG)] * 2
+    assert [request["functions"] for request in backend.requests] == [functions(CFG, "buyer")] * 2
 
 
 @pytest.mark.skipif(sandbox.host_check() is not None, reason="programs cannot be run isolated on this host")
@@ -305,7 +306,7 @@ def test_compute_beside_act_never_runs():
 
 def test_every_call_offers_compute_and_act():
     chain, backend, programs = run(reply(compute("one")), reply(compute("two")), reply(compute("three")))
-    assert [request["functions"] for request in backend.requests] == [functions(CFG)] * 3
+    assert [request["functions"] for request in backend.requests] == [functions(CFG, "buyer")] * 3
 
 
 # --- section 5: the answer to each call --------------------------------------------------------------------------
@@ -591,7 +592,8 @@ def test_failed_first_call_loses_the_turn_to_the_provider():
     chain, backend, programs = run(CallFailed("HTTP 402 for model 'm': no credit", failed_cost=0.25))
     assert chain.error == "HTTP 402 for model 'm': no credit" and chain.failed_cost == 0.25
     assert chain.reply is None and not chain.empty and chain.steps == []
-    assert chain.request == {"messages": [SYSTEM, VIEW], "functions": functions(CFG), "tool_choice": "required"}
+    assert chain.request == {"messages": [SYSTEM, VIEW], "functions": functions(CFG, "buyer"),
+                             "tool_choice": "required"}
 
 
 def test_failed_later_call_keeps_the_earlier_replies():
@@ -915,8 +917,9 @@ def test_correction_call_offers_act_only_forced():
     answer = reply(act(), cost=0.25)
     backend = Scripted(answer)
     messages = [SYSTEM, VIEW, {"role": "assistant", "content": "x"}, {"role": "user", "content": "BODY"}]
-    chain = correct(messages, backend, CFG | {"credits_per_usd": 2.0})
-    assert backend.requests == [{"messages": messages, "functions": functions(CFG)[1:], "tool_choice": ACT_FORCED}]
+    chain = correct(messages, backend, CFG | {"credits_per_usd": 2.0}, "buyer")
+    assert backend.requests == [{"messages": messages, "functions": functions(CFG, "buyer")[1:],
+                                 "tool_choice": ACT_FORCED}]
     assert ACT_FORCED == {"type": "function", "function": {"name": "act"}}
     assert [f["function"]["name"] for f in backend.requests[0]["functions"]] == ["act"]
     assert chain.reply is answer and chain.error is None and not chain.empty
@@ -926,7 +929,7 @@ def test_correction_call_offers_act_only_forced():
 
 def test_correction_call_is_never_followed_by_another_call():
     backend = Scripted(reply(compute("p")), reply(act()))
-    chain = correct([SYSTEM, VIEW], backend, CFG)
+    chain = correct([SYSTEM, VIEW], backend, CFG, "buyer")
     assert len(backend.requests) == 1 and len(backend.replies) == 1
     assert chain.reply.tool_calls[0]["function"]["name"] == "compute"
     assert chain.steps[0]["programs"] == []
@@ -934,15 +937,16 @@ def test_correction_call_is_never_followed_by_another_call():
 
 def test_correction_call_that_fails():
     backend = Scripted(CallFailed("HTTP 500 for model 'm': down", failed_cost=0.5))
-    chain = correct([SYSTEM, VIEW], backend, CFG)
+    chain = correct([SYSTEM, VIEW], backend, CFG, "buyer")
     assert chain.error == "HTTP 500 for model 'm': down" and chain.failed_cost == 0.5
     assert chain.reply is None and chain.steps == []
-    assert chain.request == {"messages": [SYSTEM, VIEW], "functions": functions(CFG)[1:], "tool_choice": ACT_FORCED}
+    assert chain.request == {"messages": [SYSTEM, VIEW], "functions": functions(CFG, "buyer")[1:],
+                             "tool_choice": ACT_FORCED}
 
 
 def test_correction_call_lets_the_cost_cap_through():
     with pytest.raises(CostCapReached):
-        correct([SYSTEM, VIEW], Scripted(CostCapReached("cost cap $1.00 reached (spent $1.00)")), CFG)
+        correct([SYSTEM, VIEW], Scripted(CostCapReached("cost cap $1.00 reached (spent $1.00)")), CFG, "buyer")
 
 
 # --- sections 11.6 and 12: the outcome lines and the results text -------------------------------------------------

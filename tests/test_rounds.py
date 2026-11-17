@@ -346,7 +346,7 @@ def test_views_and_turn_starts():
         system = prompts.system_prompt(m.cfg, p.role, pid, p.share, p.seat)
         assert r.backends[pid].requests[0]["messages"] == [{"role": "system", "content": system},
                                                            {"role": "user", "content": expected[pid]}]
-        assert r.backends[pid].requests[0]["functions"] == turns.functions(m.cfg)
+        assert r.backends[pid].requests[0]["functions"] == turns.functions(m.cfg, p.role)
         assert r.backends[pid].requests[0]["tool_choice"] == "required"
         assert (p.turns, p.last_view, p.prompt_logged) == (1, 13, True)
     assert [(x["participant"], x["text"]) for x in r.of("system_prompt")] == [
@@ -425,7 +425,7 @@ def test_what_the_log_records_of_calls_programs_and_replies():
     assert [x["request"]["tool_choice"] for x in calls if x["participant"] == B1] == [
         "required", "required", turns.ACT_FORCED, turns.ACT_FORCED]
     assert calls[-2]["request"]["functions"] == ["act"]
-    assert rounds.request(log, calls[-2])["functions"] == turns.functions(m.cfg)[1:]
+    assert rounds.request(log, calls[-2])["functions"] == turns.functions(m.cfg, "buyer")[1:]
     assert all(x["spec"] == config.seat_spec(m.cfg, m.participants[x["participant"]].role, 0) for x in calls)
     reply = calls[6]["reply"]
     assert (reply["tool_calls"], reply["text"], reply["reasoning"], reply["finish_reason"]) == (
@@ -479,7 +479,7 @@ def test_the_log_holds_each_request_by_reference_and_rebuilds_it_exactly():
         B1: [("call", "decide", 0, ["user"]), ("call", "decide", 1, ["assistant", "tool"]),
              ("call_failed", "correction", 3, ["assistant", "user"])],
         M2: [("call", "decide", 0, ["user"]), ("call_failed", "decide", 1, ["assistant", "tool"])]}
-    definitions = turns.functions(base().cfg)
+    definitions = turns.role_functions(base().cfg)
     for pid in ORDER:
         mine = [x for x in log if x["type"] in ("call", "call_failed") and x["participant"] == pid]
         received = r.backends[pid].requests
@@ -497,7 +497,7 @@ def test_the_log_holds_each_request_by_reference_and_rebuilds_it_exactly():
         assert [x["text"] for x in log if x["type"] == "system_prompt" and x["participant"] == pid] == [system]
         assert json.dumps(log).count(json.dumps(view_text)) == 1 and json.dumps(system) not in json.dumps(mine)
     assert [x["functions"] for x in log if x["type"] == "functions"] == [definitions]  # and the definitions
-    assert json.dumps(log).count(json.dumps(definitions[1])) == 1
+    assert all(json.dumps(log).count(json.dumps(definitions[role][1])) == 1 for role in ("buyer", "manager"))
     # the round's calls are interleaved in the log: M-14b's correction continues its own third call
     third, correction = [x for x in log if x["type"] == "call" and x["participant"] == M1][2:]
     between = {x["participant"] for x in log[third["n"]:correction["n"] - 1] if x["type"] == "call"}
@@ -507,7 +507,7 @@ def test_the_log_holds_each_request_by_reference_and_rebuilds_it_exactly():
 def test_a_request_that_does_not_extend_the_one_before_it():
     """running.md, 6.3 D: `kept` is how many messages the two requests share from their start, so a request is
     rebuilt exactly also when it changes or drops a message of the one before it."""
-    definitions, system = turns.functions(config.resolve(None)), {"role": "system", "content": "S"}
+    definitions, system = turns.functions(config.resolve(None), "buyer"), {"role": "system", "content": "S"}
     a, b, c, x = ({"role": "user", "content": text} for text in "abcx")
     sent = [{"messages": [system, a, b, c], "functions": definitions, "tool_choice": "required"},
             {"messages": [system, a, x, c], "functions": definitions[1:], "tool_choice": turns.ACT_FORCED},
@@ -665,7 +665,7 @@ def test_the_examples_of_8_2_a_lost_end_and_what_needed_it():
     assert r.body(B1) == "\n".join([TWO_FAILED, "", "Results of your reply:", EXAMPLES[0], "", EXAMPLES[1], "", NEWS,
                                     DELIVERED])
     request = r.backends[B1].requests[1]
-    assert (request["functions"], request["tool_choice"]) == (turns.functions(m.cfg)[1:], turns.ACT_FORCED)
+    assert (request["functions"], request["tool_choice"]) == (turns.functions(m.cfg, "buyer")[1:], turns.ACT_FORCED)
     assert request["messages"][:2] == r.backends[B1].requests[0]["messages"]
     assert [x["role"] for x in request["messages"][2:]] == ["assistant", "tool"]
     assert request["messages"][3]["tool_call_id"] == "a1"
@@ -737,8 +737,8 @@ def test_the_messages_of_the_example_turns_of_acceptance_check_4():
     assert second["messages"][:2] == r.backends[B2].requests[0]["messages"]
     assert correction["messages"][:2] == r.backends[M2].requests[0]["messages"]
     assert [x["tool_choice"] for x in r.backends[M2].requests] == ["required", turns.ACT_FORCED, turns.ACT_FORCED]
-    assert [x["functions"] for x in r.backends[M2].requests] == [turns.functions(m.cfg)] * 2 + [
-        turns.functions(m.cfg)[1:]]
+    assert [x["functions"] for x in r.backends[M2].requests] == [turns.functions(m.cfg, "manager")] * 2 + [
+        turns.functions(m.cfg, "manager")[1:]]
     assert m.participants[M2].memory == Memory("m", 5, 1, 1, True)  # the correction's replaces "mock memory"
 
 

@@ -33,6 +33,8 @@ default configuration depends on them. These are the ones worth your time first.
 - Q3, Q82, Q87: smaller disagreements of the same kind.
 
 **A choice made for you that you may want otherwise.**
+- Q117 (decided): act names each role's actions and its example keeps the memory out; a deliberate
+  departure from turns.md 3.2 and acceptance check 2.
 - Q116: a seat's reasoning effort does nothing under the forced tool_choice of turns.md 4.1 (seen in the paid
   Haiku 5.5 run); `extra_body` can override tool_choice.
 - Q39 (decided): keys come from the environment, else from a git-ignored `.env` in the working directory.
@@ -1313,6 +1315,35 @@ GPT review of the design. Q30 is of the same family.
   set it, is for you to decide. The configs `configs/haiku55_medium_reasoning_all.yaml` and
   `configs/qwen35_9b_reasoning_all.yaml` take that override (tool_choice `auto` on every call of a turn), so
   they run a harness that differs from 4.1.
+
+### Q117. Departure: act's items name the role's actions, and its example keeps the memory out
+- Where: `turns.md`, "3.2 act" ("The `items` schema is a bare object on purpose: no per-action schema is
+  declared"); `examples/tools_*.json`; `README.md`, acceptance check 2
+- Quote: the act description's example `{"actions": [{"action": "<action name>", "<argument name>": <value>},
+  {"action": "<action name>"}], "memory": "<your memory>"}`
+- Case: Qwen3.5-9B sends the memory as an action as well as in `memory`: 27 of its 1,072 replies in the paid
+  run of 2026-11-15 (`runs/no-reasoning/qwen35_9b_all_no-reasoning_interrupted`) held an item
+  `{"action": "memory", ...}`, each refused as `unknown action 'memory'` and costing a correction call; 2 of 14
+  act calls in a probe with reasoning on. Claude Haiku 5.5 never did (0 of 3,364 replies). Nothing in the schema
+  says which names are actions.
+- Decided (the user's choice, a deliberate departure from the reference market): act is offered per role, and
+  only two of its parts change. (1) Its `items` schema is `{"type": "object", "properties": {"action":
+  {"type": "string", "enum": <the role's actions in this message_channels mode, in the order a refusal lists
+  them>}}, "required": ["action"], "additionalProperties": true}` (the arguments stay free). (2) Its
+  description's example uses two real actions of the role with placeholder values, so that it suggests no form,
+  threshold or price (buyer: `{"action": "post_task", "task_id": "<task id>"}, {"action": "test_delivery",
+  "contract_id": "<contract id>"}`; manager: `{"action": "bid", "post_id": "<post id>", "price": <price>},
+  {"action": "test_result", "contract_id": "<contract id>", "result": "<result label>"}`) and ends "Your memory
+  is not an action: write it in "memory", never as an item of "actions"." The rest of the description, the
+  actions and memory descriptions and the reading of a reply are as the spec writes them (an item named memory
+  is still refused).
+- Consequences: the log's functions record holds each role's definitions (`{"buyer": [...], "manager":
+  [...]}`; a log from before holds one list, still read). A checkpoint holds the definitions its calls were
+  offered, and one whose definitions differ from the running code's is not used (`unreadable`), so an episode
+  begun before this change starts afresh rather than resuming with other definitions (running.md 5, "the same
+  texts sent to every model"). Where a provider reports no token counts, the estimate of a request's input
+  counts the longer, role-specific act. Acceptance check 2 and the tool examples hold for compute, the tool
+  choices and act's other fields; the tests compare the examples with act replaced (`tests/departures.py`).
 
 ### Q118. Provider claude_code cannot carry everything an adapter must carry
 - Where: `models.md`, section 3, last paragraph ("Another provider ... may be added behind the same interface"), with

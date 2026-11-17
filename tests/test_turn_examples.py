@@ -19,7 +19,8 @@ import re
 import pytest
 
 import test_views_examples as views
-from market import episode, processes, prompts, rounds, sandbox
+from departures import with_act
+from market import config, episode, processes, prompts, rounds, sandbox
 from market.models import CostTracker, Reply
 
 SPEC = pathlib.Path(__file__).parent.parent / "spec"
@@ -35,8 +36,9 @@ def example(name):
     return (SPEC / "examples" / name).read_text(encoding="utf-8")
 
 
-def tools(name):
-    return example(f"tools_{name}.json").rstrip("\n")
+def tools(name, role):
+    """examples/tools_{name}.json as offered to a role in this market (act departs from it: SPEC_QUESTIONS Q117)."""
+    return with_act(example(f"tools_{name}.json"), config.resolve(None), role)
 
 
 def as_file(value):
@@ -124,8 +126,8 @@ def test_the_turn_with_a_program(order):
     assert second["messages"][0] == day.system("B-d75")
     assert as_file(second["messages"][1:]) == example("turn_with_compute_off_B-d75.json")
     assert first["messages"] == second["messages"][:2]  # turns.md, 5.1: the step adds to the same conversation
-    assert offered(first) == tools("first_call_compute_act")  # turns.md, 4.1
-    assert offered(second) == tools("act_forced_compute_act")
+    assert offered(first) == tools("first_call_compute_act", "buyer")  # turns.md, 4.1
+    assert offered(second) == tools("act_forced_compute_act", "buyer")
     assert day.balances("B-d75") == [135.6]
 
 
@@ -151,7 +153,7 @@ def test_the_turn_with_a_correction(order, next_order):
     assert correction["messages"][0] == day.system("M-849")
     assert as_file(correction["messages"][1:]) == example("turn_with_correction_off.json")
     assert first["messages"] == correction["messages"][:2] and second["messages"] == correction["messages"][:4]
-    assert offered(correction) == tools("act_forced_act")  # turns.md, 11.5
+    assert offered(correction) == tools("act_forced_act", "manager")  # turns.md, 11.5
     assert [len(requests[pid]) for pid in BUYERS + MANAGERS] == [2, 2, 2, 3, 2]  # the round's one correction
     assert day.balances("M-849") == [76.8, 76.8]
     # view.md, 14.1: the same round's view of B-c53, whose first turn posted task-1

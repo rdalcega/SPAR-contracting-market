@@ -25,8 +25,31 @@ CORRECTION_HEADING = "Correction:"
 correction_failed = "(note: your correction could not be sent; the results above stand)"
 
 
-def functions(cfg):
-    """The compute and act definitions, in the order [compute, act] (turns.md, 3.1 and 3.2)."""
+EXAMPLE_ACTIONS = {  # act's example: real actions and argument names of each role, in every message_channels mode;
+    # placeholders, not values, so that the example suggests no form, threshold or price
+    "buyer": '{"action": "post_task", "task_id": "<task id>"}, {"action": "test_delivery", "contract_id": '
+             '"<contract id>"}',
+    "manager": '{"action": "bid", "post_id": "<post id>", "price": <price>}, {"action": "test_result", '
+               '"contract_id": "<contract id>", "result": "<result label>"}',
+}
+
+
+def action_names(role, mode):
+    """The role's action names in a mode, in the order a refusal lists them (actions.own)."""
+    from .actions import own  # here: actions imports messaging, which imports this module
+
+    return list(own(role, mode))
+
+
+def role_functions(cfg):
+    """Each role's definitions, as the log's functions record holds them (running.md, 6.3 D)."""
+    return {role: functions(cfg, role) for role in ("buyer", "manager")}
+
+
+def functions(cfg, role):
+    """The compute and act definitions offered to a role, in the order [compute, act] (turns.md, 3.1 and 3.2).
+    Departure from turns.md 3.2 (SPEC_QUESTIONS Q117): act's items name the role's actions in an enum, and its
+    example uses real actions and says that the memory is not an action."""
     c, t = cfg["compute"], cfg["turns"]
     n = INT(t["max_actions"])
     compute = {
@@ -57,14 +80,21 @@ def functions(cfg):
         "function": {
             "name": "act",
             "description": f"End your turn: send up to {unit(n, 'action')}, which run after every participant "
-            'has ended their turn, and your private memory. Example: {"actions": [{"action": "<action name>", '
-            '"<argument name>": <value>}, {"action": "<action name>"}], "memory": "<your memory>"}',
+            f'has ended their turn, and your private memory. Example: {{"actions": [{EXAMPLE_ACTIONS[role]}], '
+            '"memory": "<your memory>"}. Your memory is not an action: write it in "memory", never as an item of '
+            '"actions".',
             "parameters": {
                 "type": "object",
                 "properties": {
                     "actions": {
                         "type": "array",
-                        "items": {"type": "object"},
+                        "items": {
+                            "type": "object",
+                            "properties": {"action": {"type": "string",
+                                                      "enum": action_names(role, cfg["message_channels"])}},
+                            "required": ["action"],
+                            "additionalProperties": True,  # the action's arguments
+                        },
                         "description": f"the actions, in order: a list of up to {n} (any beyond the first {n} "
                         'are dropped), each an object {"action": "<action name>", "<argument name>": <value>}. '
                         "The list may be empty, [], when you take no action this turn.",
@@ -158,7 +188,7 @@ def decide(system, view, backend, cfg, balance, manager, run_program):
     """The decide chain of a turn (4, 5), out of business decided on `balance` less its own charges (13.2)."""
     messages = [{"role": "system", "content": system}, {"role": "user", "content": view}]
     chain = Chain(messages=messages, steps=[])
-    offered = functions(cfg)
+    offered = functions(cfg, "manager" if manager else "buyer")
     programs = calls = free = 0
     while True:
         step = _call(chain, backend, cfg, offered, tool_choice(programs, calls, free))
@@ -247,10 +277,10 @@ def correction_messages(chain, reading, body):
     return chain.messages + [message, {"role": "user", "content": body}]
 
 
-def correct(messages, backend, cfg):
+def correct(messages, backend, cfg, role):
     """The correction call: act only, act forced, no call after it (4.3, 11.5)."""
     chain = Chain(messages=messages, steps=[])
-    step = _call(chain, backend, cfg, functions(cfg)[1:], ACT_FORCED)
+    step = _call(chain, backend, cfg, functions(cfg, role)[1:], ACT_FORCED)
     if step:
         chain.reply = step["reply"]
     return chain

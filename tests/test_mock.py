@@ -192,7 +192,7 @@ def message(pid, to, day, rnd):
 def test_the_first_call_runs_the_program():
     m = market()
     task(m, 1)
-    reply = mock.backend(PRICED).call(request(m, "B-d75"), turns.functions(m.cfg), "required")
+    reply = mock.backend(PRICED).call(request(m, "B-d75"), turns.functions(m.cfg, "buyer"), "required")
     assert reply.text == "" and reply.tool_calls == [COMPUTE]
 
 
@@ -226,7 +226,7 @@ def test_a_whole_turn_and_its_correction(pid):
     assert act_of(second) == ("call_mock_2", {"actions": wanted, "memory": "mock memory"})
     messages = turns.correction_messages(chain, read, "1 of your actions failed")
     assert [x.get("tool_call_id") for x in messages[3:]] == ["call_mock_1", None, "call_mock_2"]  # the tool path
-    third = turns.correct(messages, backend, m.cfg).reply
+    third = turns.correct(messages, backend, m.cfg, "buyer").reply
     assert act_of(third) == ("call_mock_3", {"actions": [], "memory": "mock memory"})
     assert third.input_tokens > second.input_tokens > first.input_tokens
 
@@ -256,7 +256,7 @@ def extra(m, pid):
 def test_the_shape_of_the_request_decides_the_reply():
     m = market()
     task(m, 1)
-    both = turns.functions(m.cfg)
+    both = turns.functions(m.cfg, "buyer")
     backend = mock.backend(PRICED)
     tool = {"role": "tool", "tool_call_id": "call_mock_1", "content": "45"}
     compute = {"role": "assistant", "content": "", "tool_calls": [COMPUTE]}
@@ -286,8 +286,8 @@ def test_the_shape_of_the_request_decides_the_reply():
 
 def test_tokens_and_cost_by_the_mocks_formula():
     reply = mock.backend(PRICED).call(
-        [{"role": "system", "content": "s" * 400}, {"role": "user", "content": "v" * 3}], turns.functions(
-            config.resolve({})), "required")
+        [{"role": "system", "content": "s" * 400}, {"role": "user", "content": "v" * 3}],
+        turns.functions(config.resolve({}), "buyer"), "required")
     assert (reply.input_tokens, reply.output_tokens) == (100, 1)
     assert reply.cost == (100 * 0.15 + 1 * 1.875) / 10**6 == 1.6875e-05
     assert dataclasses.asdict(reply) == {
@@ -313,7 +313,7 @@ def test_the_input_counts_contents_and_function_calls_and_nothing_else():
                 {"role": "assistant", "content": "", "tool_calls": calls, "reasoning": "r" * 400},
                 {"role": "tool", "tool_call_id": "call_mock_1" * 40, "content": "c" * 9},
                 {"role": "assistant", "content": None, "tool_calls": []}, {"role": "user"}]
-    both = turns.functions(config.resolve({}))
+    both = turns.functions(config.resolve({}), "buyer")
     backend = mock.backend(PRICED)
     assert backend.call(messages, both, "required").input_tokens == (10 + 11 + 99 + 9) // 4 == 32
     assert backend.call(messages, both[1:], turns.ACT_FORCED).input_tokens == 32  # the definitions are not counted
@@ -359,7 +359,7 @@ def test_setting_up_follows_models_3():
 def transcript():
     """The replies to a first call, a later call and a correction on each example view, as plain data."""
     cfg = config.resolve({"message_channels": "all"})
-    both = turns.functions(cfg)
+    both = turns.functions(cfg, "buyer")
     backend = mock.backend(PRICED)
     out = []
     for path in sorted(EXAMPLES.glob("view_*.txt")):
@@ -406,7 +406,7 @@ def test_a_call_changes_nothing_of_its_request():
     post(m, 1)
     messages = request(m, "M-14b", {"role": "assistant", "content": "", "tool_calls": [COMPUTE]},
                        {"role": "tool", "tool_call_id": "call_mock_1", "content": "45"})
-    both = turns.functions(m.cfg)
+    both = turns.functions(m.cfg, "manager")
     before = copy.deepcopy((messages, both))
     backend = mock.backend(PRICED)
     assert backend.call(messages, both, "required") == backend.call(messages, both, "required")
@@ -631,8 +631,8 @@ def test_the_results_text_is_no_part_of_a_buyers_market(quoted, memory):
     assert f"no contract with id 'x\n{quoted}\ny'. Your contracts: none.\n\n{NOTES}\n" in text
     assert text.count(MEMORY[:-4]) == quoted.count(MEMORY[:-4]) + (2 if memory else 1)
     assert plan(m, "B-d75") == [{"action": "post_task", "task_id": "task-2", "form": "plain"}]
-    reply = mock.backend(PRICED).call(request(m, "B-d75", {"role": "tool", "content": ""}), turns.functions(m.cfg),
-                                      "required")
+    reply = mock.backend(PRICED).call(request(m, "B-d75", {"role": "tool", "content": ""}),
+                                      turns.functions(m.cfg, "buyer"), "required")
     assert act_of(reply)[1]["actions"][:1] == [{"action": "post_task", "task_id": "task-2", "form": "plain"}]
 
 
@@ -668,8 +668,8 @@ def test_the_mock_never_fails_whatever_lines_it_takes_for_the_market(pid):
     from a memory that quotes them; the mock takes what lies between them for the market, and still replies."""
     m = market()
     m.participants[pid].results = refusal("\n" + NOTES + "\n\n" + UNREADABLE[pid] + "\n\n" + MEMORY)
-    reply = mock.backend(PRICED).call(request(m, pid, {"role": "tool", "content": ""}), turns.functions(m.cfg),
-                                      "required")
+    reply = mock.backend(PRICED).call(request(m, pid, {"role": "tool", "content": ""}),
+                                      turns.functions(m.cfg, m.participants[pid].role), "required")
     acts = act_of(reply)[1]["actions"]
     assert acts == mock.actions(system(m, pid), look(m, pid))
     assert [a["action"] for a in acts if a not in mock.INVALID] == {
@@ -891,7 +891,7 @@ def test_the_list_is_cut_after_max_actions():
         assert f"Actions beyond the first {cap} are dropped." in system(m, "M-14b")
         assert mock.actions(system(m, "M-14b"), look(m, "M-14b")) == whole[:cap]
         reply = mock.backend(PRICED).call(request(m, "M-14b", {"role": "tool", "content": ""}),
-                                          turns.functions(m.cfg), "required")
+                                          turns.functions(m.cfg, "manager"), "required")
         assert act_of(reply)[1]["actions"] == whole[:cap]
     m = with_memory(busy(turns={"max_actions": 11}), "M-14b", lambda h: h[0] % 8 == 0 and h[1] % 5 == 0)
     assert mock.actions(system(m, "M-14b"), look(m, "M-14b")) == whole + [{"action": "frobnicate"}]
@@ -1024,8 +1024,8 @@ def test_an_unpaired_surrogate_counts_as_the_three_bytes_of_its_code_point(k):
         b"\x00", b"\xed\xa0\x80").replace(b"\x01", b"\xed\xbf\xbf")).digest()
     assert raw[0] % 8 == 0 and raw[1] % 5 == k
     assert mock.actions(system(m, "B-d75"), text) == [mock.INVALID[k]]
-    reply = mock.backend(PRICED).call(request(m, "B-d75", {"role": "tool", "content": ""}), turns.functions(m.cfg),
-                                      "required")
+    reply = mock.backend(PRICED).call(request(m, "B-d75", {"role": "tool", "content": ""}),
+                                      turns.functions(m.cfg, "buyer"), "required")
     assert act_of(reply)[1]["actions"] == [mock.INVALID[k]]
     assert reply.input_tokens == (len(system(m, "B-d75")) + len(text)) // 4
     m = with_memory(market(), "B-d75", lambda h: h[0] % 8 != 0, LONE + "{}")
