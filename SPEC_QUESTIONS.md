@@ -1375,5 +1375,7 @@ GPT review of the design. Q30 is of the same family.
   or dynamic tool but the market's): the departures are text and protocol, not power. `codex` takes the same
   readings (`market/live.py` holds them for both), with reasoning as the summary Codex returns and `max_tokens` not
   applied.
-- Decided (2026-11-16, by the user): runs on these providers do not count as the same market. The notice and the
-  answer to a withheld `compute` call were chosen by the user.
+- Decided (2026-11-16, by the user): runs on these providers count as the same market; the departures above are
+  accepted. (An earlier decision that they did not was withdrawn: it rested on the belief that the agents could use
+  the harnesses' own tools, which they cannot.) The notice and the answer to a withheld `compute` call were chosen
+  by the user; they apply only on these two providers.

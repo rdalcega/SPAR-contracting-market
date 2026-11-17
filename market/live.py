@@ -30,7 +30,7 @@ What this does differently from the OpenAI-compatible providers, whatever the ha
 - a response the market does not get (the harness's own continuation, its new request after a call of a function it
   does not serve, or one answered with the notice above) adds its tokens and its thinking to the next reply, so it is
   charged and logged with it; when the session ends first, its cost counts toward the cost cap only.
-SPEC_QUESTIONS Q118 records these and the user's decision that runs on these providers are not the same market.
+SPEC_QUESTIONS Q118 records these and the user's decision that runs on these providers count as the same market.
 """
 
 import atexit
