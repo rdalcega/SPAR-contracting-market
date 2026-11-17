@@ -1,0 +1,29 @@
+# Smoke run on both subscriptions: the buyers on Claude Haiku 5.5 through Claude Code (provider claude_code), the
+# managers and the summarizer on GPT-5.6 Luna through Codex (provider codex), all message channels on, in a short
+# episode (about 3 days). Needs CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`) in the environment or .env, and a
+# ChatGPT login in Codex (`codex login`). Neither harness sets a temperature. The prices are the API's ($0.10 / $0.50
+# and $0.20 / $1.20 per million tokens): they set the token charges and the cost cap, not what the subscriptions bill.
+seeds: [0]
+parallel_episodes: 1
+cost_cap_usd: 2
+name: mixed_haiku55_gpt56luna_smoke
+message_channels: all
+time: {horizon_min_days: 2, horizon_end_prob: 0.9, close_after_due_days: 1}
+value: {late_decay: 1}
+tasks: {due_days_range: [1, 2]}
+models:
+  buyers:
+    provider: claude_code
+    model: claude-haiku-5-5
+    price_in_per_m: 0.10
+    price_out_per_m: 0.50
+    temperature: null
+    extra_body: {reasoning: {effort: medium}}
+  managers: &luna
+    provider: codex
+    model: gpt-5.6-luna
+    price_in_per_m: 0.20
+    price_out_per_m: 1.20
+    temperature: null
+    extra_body: {reasoning: {effort: low}}
+  summarizer: *luna

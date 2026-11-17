@@ -150,9 +150,10 @@ def _seeds(path, v):
 
 MODES = ("off", "managers", "buyers", "within_roles", "all")
 PROVIDERS = ("openrouter", "openai_compatible", "ollama", "mock")
-ADDED_PROVIDERS = ("claude_code",)  # models.md 3, "Another provider ... may be added": market/claude_code.py
+ADDED_PROVIDERS = ("claude_code", "codex")  # models.md 3, "Another provider ... may be added": market/live.py
 FREE_PROVIDERS = ("mock", "ollama")
-EFFORTS = ("low", "medium", "high", "xhigh", "max")  # Claude Code's --effort levels (provider claude_code)
+EFFORTS = {"claude_code": ("low", "medium", "high", "xhigh", "max"),  # Claude Code's --effort levels
+           "codex": ("low", "medium", "high", "xhigh", "max", "ultra")}  # Codex's reasoning efforts
 
 
 def _channels(path, v):
@@ -341,22 +342,25 @@ _RUNS = (("employee", "fresh", "t_med"), ("employee", "refine", "t_ref_med"),
         ("manager", "fresh", "t_med"), ("manager", "refine", "t_ref_med"))
 
 
-def _claude_code(path, spec):
-    """A claude_code spec (market/claude_code.py): Claude Code sets no temperature and no base URL, and of
+def _harness(path, spec):
+    """A spec of a harness provider (market/live.py): the harness sets no temperature and no base URL, and of
     extra_body takes only the reasoning effort; a setting it would drop is refused rather than dropped."""
+    provider = spec["provider"]
     if spec["temperature"] is not None:
-        _fail(f"{path}.temperature", "must be null with provider claude_code (Claude Code sets no temperature; "
+        _fail(f"{path}.temperature", f"must be null with provider {provider} (it sets no temperature; "
                                      "llm.temperature applies when the spec gives none)")
     if "base_url" in spec:
-        _fail(f"{path}.base_url", "is not used by provider claude_code")
-    if "api_key_env" in spec and spec["api_key_env"] is None:
+        _fail(f"{path}.base_url", f"is not used by provider {provider}")
+    if provider == "claude_code" and "api_key_env" in spec and spec["api_key_env"] is None:
         _fail(f"{path}.api_key_env", "must name the variable of a Claude Code token with provider claude_code")
-    body = spec["extra_body"]
+    if provider == "codex" and "api_key_env" in spec:
+        _fail(f"{path}.api_key_env", "is not used by provider codex (it uses the user's Codex login)")
+    body, efforts = spec["extra_body"], EFFORTS[provider]
     reasoning = body.get("reasoning")
     if body and not (body.keys() == {"reasoning"} and type(reasoning) is dict and reasoning.keys() == {"effort"}
-                     and reasoning["effort"] in EFFORTS):
-        _fail(f"{path}.extra_body", "may hold only reasoning.effort with provider claude_code, one of "
-                                    + ", ".join(EFFORTS))
+                     and reasoning["effort"] in efforts):
+        _fail(f"{path}.extra_body", f"may hold only reasoning.effort with provider {provider}, one of "
+                                    + ", ".join(efforts))
 
 
 def _check(cfg):
@@ -418,8 +422,8 @@ def _check(cfg):
     specs = [*((f"models.{k}", m[k]) for k in ("buyers", "managers", "summarizer")),
              *((f"models.{seats}.{k}", s) for seats in ("buyer_seats", "manager_seats") for k, s in m[seats].items())]
     for path, spec in specs:
-        if spec["provider"] == "claude_code":
-            _claude_code(path, spec)
+        if spec["provider"] in ADDED_PROVIDERS:
+            _harness(path, spec)
 
     for role in ("buyer", "manager"):
         count = str(cfg["participants"][f"{role}s"])

@@ -1,0 +1,23 @@
+# Smoke run on a ChatGPT subscription: every seat and the summarizer on GPT-5.6 Luna through Codex (provider codex,
+# market/codex.py), all message channels on, in a short episode (about 3 days). Needs a ChatGPT login in Codex
+# (`codex login`). Codex sets no temperature, so it is null. The prices are OpenAI's API prices for the model
+# ($0.20 / $1.20 per million tokens since 2026-07-30): they set the participants' token charges and the cost cap,
+# not what the subscription bills.
+seeds: [0]
+parallel_episodes: 1
+cost_cap_usd: 2
+name: codex_gpt56luna_smoke
+message_channels: all
+time: {horizon_min_days: 2, horizon_end_prob: 0.9, close_after_due_days: 1}
+value: {late_decay: 1}
+tasks: {due_days_range: [1, 2]}
+models:
+  buyers: &luna
+    provider: codex
+    model: gpt-5.6-luna
+    price_in_per_m: 0.20
+    price_out_per_m: 1.20
+    temperature: null
+    extra_body: {reasoning: {effort: low}}
+  managers: *luna
+  summarizer: *luna

@@ -23,6 +23,7 @@ _PROVIDERS = {  # section 3: (base URL, API key variable) when the spec gives no
     "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
     "ollama": ("http://localhost:11434/v1", None),
     "claude_code": (None, "CLAUDE_CODE_OAUTH_TOKEN"),  # market/claude_code.py: Claude Code on a subscription
+    "codex": (None, None),  # market/codex.py: Codex on a ChatGPT subscription, with the user's Codex login
 }
 _TITLE = "contracting-market"
 _RETRIED = (408, 409, 425, 429)
@@ -162,6 +163,9 @@ def backend(spec, llm, tracker, *, env=None, sleep=time.sleep, clock=time.time):
     if spec["provider"] == "claude_code":
         from . import claude_code
         return claude_code.backend(spec, llm, tracker, key, sleep=sleep, clock=clock)
+    if spec["provider"] == "codex":
+        from . import codex
+        return codex.backend(spec, llm, tracker, sleep=sleep, clock=clock)
     return _Backend(spec, llm, tracker, base, key, sleep, clock)
 
 

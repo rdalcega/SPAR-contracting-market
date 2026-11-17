@@ -1345,7 +1345,7 @@ GPT review of the design. Q30 is of the same family.
   counts the longer, role-specific act. Acceptance check 2 and the tool examples hold for compute, the tool
   choices and act's other fields; the tests compare the examples with act replaced (`tests/departures.py`).
 
-### Q118. Provider claude_code cannot carry everything an adapter must carry
+### Q118. Providers claude_code and codex cannot carry everything an adapter must carry
 - Where: `models.md`, section 3, last paragraph ("Another provider ... may be added behind the same interface"), with
   2.1 (the call's inputs: messages, functions, tool_choice, temperature) and 2.3 (the messages carried back)
 - Quote: "Its adapter must take the inputs of 2.1, carry the messages of 2.3 (function calls, tool answers and, where
@@ -1356,17 +1356,24 @@ GPT review of the design. Q30 is of the same family.
   2026-11-15 (Claude Code 2.1.325, Haiku 5.5): the system prompt starts with "You are a Claude agent, built on
   Anthropic's Claude Agent SDK."; a reminder before the view gives today's date; a system message after it gives the
   working folder, platform, model name and a note on untrusted files; the functions are named `mcp__market__<name>`.
-  None of these has a switch that keeps subscription login (`--bare` does, but takes only an API key).
+  None of these has a switch that keeps subscription login (`--bare` does, but takes only an API key). The provider
+  `codex` (`market/codex.py`, added on 2026-11-16) runs each conversation in a `codex app-server` thread on a ChatGPT
+  subscription. With its tools, instructions and catalog switched as the module lists, Codex 0.163.0 sends the model
+  the system text, the view and the two functions under their own names and nothing else (checked with `codex debug
+  prompt-input` and the tools each response reports); it too takes no `tool_choice`, no temperature and no change of
+  tools, and it has no setting for the model's output limit, so `max_tokens` is not applied.
 - Reading taken: the provider is added with these departures, listed in the module's docstring: tool_choice is not
   sent, so `"required"` is not enforced; where a call allows only `act` (a correction, or a forced `act` in the
   decide chain) the model, which still sees `compute`, is told "compute is not available now: call act" at the start
   of what the call delivers, and the first response that calls only `compute` is answered with that notice and the
   model asked again (that response's tokens and thinking go with the reply); a spec must give `temperature: null`,
-  and `extra_body` may hold only `reasoning.effort`; on the text path (`turns.md` 11.4) the model keeps its own reply and the body goes back as the result of its last pending call
-  ("not run" for the earlier ones) or as a user message; reasoning is Claude's thinking summary; cost is the tokens
+  and `extra_body` may hold only `reasoning.effort`; on the text path (`turns.md` 11.4) the model keeps its own
+  reply and the body goes back as the result of its last pending call ("not run" for the earlier ones) or as a user message; reasoning is Claude's thinking summary; cost is the tokens
   at the spec's prices with cache tokens as plain input; a failure within a chain is not retried. One consequence
   runs against Q116: with no forced tool_choice, Claude seats on `claude_code` do think, where the same model on
-  OpenRouter does not. The agents get none of Claude Code's own tools (built-in tools off, no MCP server but the
-  market's): the departures are text and protocol, not power.
-- Decided (2026-11-16, by the user): runs on this provider do not count as the same market. The notice and the
+  OpenRouter does not. The agents get none of Claude Code's or Codex's own tools (built-in tools off, no MCP server
+  or dynamic tool but the market's): the departures are text and protocol, not power. `codex` takes the same
+  readings (`market/live.py` holds them for both), with reasoning as the summary Codex returns and `max_tokens` not
+  applied.
+- Decided (2026-11-16, by the user): runs on these providers do not count as the same market. The notice and the
   answer to a withheld `compute` call were chosen by the user.

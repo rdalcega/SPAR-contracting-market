@@ -13,7 +13,7 @@ import types
 
 import pytest
 
-from market import claude_code, config, models
+from market import claude_code, config, live, models
 
 FAKE = os.path.join(os.path.dirname(__file__), "fake_claude.py")
 LLM = {"temperature": 0.8, "max_tokens": 64000, "timeout_s": 10, "max_retries": 2, "network_patience_s": 900}
@@ -112,8 +112,8 @@ def test_system_prompt_is_the_system_message(tmp_path, monkeypatch):
     seen = {}
     real = claude_code._Session.__init__
 
-    def spy(self, owner, system, functions):
-        real(self, owner, system, functions)
+    def spy(self, owner, system, functions, deadline):
+        real(self, owner, system, functions, deadline)
         with open(os.path.join(self.dir, "system.txt")) as f:
             seen["system"] = f.read()
 
@@ -171,7 +171,7 @@ def test_withheld_calls_are_pushed_back_once(tmp_path):
     first = b.call([SYSTEM, VIEW], [COMPUTE, ACT], "required")
     reply = b.call([SYSTEM, VIEW, assistant(first)] + answer(first, "unreadable"), [ACT], FORCED)
     assert reply.tool_calls[0]["function"]["name"] == "compute"  # the market reads it: no act call
-    assert reply.reasoning == "I want numbers.Still."
+    assert reply.reasoning == "I want numbers.\n\nStill."
 
 
 def test_a_first_call_that_withholds_a_function_opens_with_the_notice(tmp_path):
@@ -181,21 +181,19 @@ def test_a_first_call_that_withholds_a_function_opens_with_the_notice(tmp_path):
 
 
 def test_the_notice():
-    assert claude_code._notice(["compute"], ["act"]) == "compute is not available now: call act"
-    assert claude_code._notice(["a", "b"], ["c", "d"]) == "a and b are not available now: call c or d"
-    assert claude_code._notice(["compute", "act"], []) == "compute and act are not available now"
-    assert claude_code._allowed([COMPUTE, ACT], "none") == []
-    assert claude_code._allowed([COMPUTE, ACT], {"type": "function", "function": {"name": "other"}}) == [
-        "compute", "act"]
+    assert live.notice(["compute"], ["act"]) == "compute is not available now: call act"
+    assert live.notice(["a", "b"], ["c", "d"]) == "a and b are not available now: call c or d"
+    assert live.notice(["compute", "act"], []) == "compute and act are not available now"
+    assert live.allowed([COMPUTE, ACT], "none") == []
+    assert live.allowed([COMPUTE, ACT], {"type": "function", "function": {"name": "other"}}) == ["compute", "act"]
 
 
-def test_calls_without_ids_are_still_served(tmp_path, monkeypatch):
+def test_calls_without_ids_are_still_served():
     blocks = [{"type": "tool_use", "name": claude_code.PREFIX + n, "json": "{}"} for n in ("compute", "act")]
-    session = types.SimpleNamespace(pending=[], ended=False, carried=(0, 0, ""))
-    responses = iter([(blocks, {}, "tool_use")])
-    session._response = lambda deadline: (next(responses), None)
-    session._reply = lambda *a: claude_code._Session._reply(session, *a)
-    reply = claude_code._Session.read(session, time.time() + 5, ["compute"], "n")
+    session = types.SimpleNamespace(pending=[], ended=False, carried=live.Response(), until=None)
+    session.response = lambda deadline: (claude_code._Session._response(blocks, {}, "tool_use"), None)
+    session._reply = lambda response: live.Session._reply(session, response)
+    reply = live.Session.read(session, time.time() + 5, ["compute"], "n")
     assert [c["function"]["name"] for c in reply.tool_calls] == ["compute", "act"]
 
 
@@ -295,14 +293,14 @@ def test_a_session_that_cannot_start_leaves_nothing_behind(tmp_path, monkeypatch
     fake = Fake(tmp_path, [])
     b = fake.backend()
     made = []
-    real = claude_code._Session._launch
+    real = claude_code._Session.launch
 
-    def failing(self, system, functions):
+    def failing(self, system, functions, deadline):
+        real(self, system, functions, deadline)
         made.append(self.dir)
-        real(self, system, functions)
         raise RuntimeError("no")
 
-    monkeypatch.setattr(claude_code._Session, "_launch", failing)
+    monkeypatch.setattr(claude_code._Session, "launch", failing)
     with pytest.raises(RuntimeError):
         b.call([SYSTEM, VIEW], [COMPUTE, ACT])
     assert b.sessions == [] and made and not os.path.exists(made[0])
