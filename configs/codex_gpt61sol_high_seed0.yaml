@@ -1,0 +1,20 @@
+# One full-length episode (seed 0), the Codex counterpart of claude_code_opus55_high_seed0.yaml: every seat and the
+# summarizer on GPT-6.1 Sol at high effort through Codex (provider codex), all message channels on; the time
+# settings are the spec's defaults. Needs a ChatGPT login in Codex (`codex login`). The prices are OpenAI's API
+# prices for the model ($2 / $10 per million tokens, as reported in November 2026): they set the participants' token
+# charges and the cost cap (a notional dollar figure, set high so that it does not stop the run).
+seeds: [0]
+parallel_episodes: 1
+cost_cap_usd: 150
+name: codex_gpt61sol_high_seed0
+message_channels: all
+models:
+  buyers: &sol
+    provider: codex
+    model: gpt-6.1-sol
+    price_in_per_m: 2.0
+    price_out_per_m: 10.0
+    temperature: null
+    extra_body: {reasoning: {effort: high}}
+  managers: *sol
+  summarizer: *sol

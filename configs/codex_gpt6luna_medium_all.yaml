@@ -1,0 +1,20 @@
+# Subscription run, the Codex counterpart of claude_code_haiku55_medium_all.yaml: 12 full-length episodes, every
+# seat and the summarizer on GPT-6 Luna at medium effort through Codex (provider codex), all message channels on;
+# the time settings are the spec's defaults. Needs a ChatGPT login in Codex (`codex login`). Two episodes at a time.
+# The prices are OpenAI's API prices for the model ($0.10 / $0.50 per million tokens, as reported in November 2026):
+# they set the participants' token charges and the cost cap (a notional dollar figure), not what the subscription bills.
+seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+parallel_episodes: 2
+cost_cap_usd: 50
+name: codex_gpt6luna_medium_all
+message_channels: all
+models:
+  buyers: &luna
+    provider: codex
+    model: gpt-6-luna
+    price_in_per_m: 0.10
+    price_out_per_m: 0.50
+    temperature: null
+    extra_body: {reasoning: {effort: medium}}
+  managers: *luna
+  summarizer: *luna

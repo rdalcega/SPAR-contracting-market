@@ -1,0 +1,20 @@
+# One full-length episode (seed 0), every seat and the summarizer on Claude Opus 5.5 at high effort through Claude
+# Code (provider claude_code), all message channels on; the time settings are the spec's defaults. Needs
+# CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`) in the environment or .env. The prices are the API's ($4 / $20 per
+# million tokens): they set the participants' token charges and the cost cap (a notional dollar figure, set high so
+# that it does not stop the run), not what the subscription bills.
+seeds: [0]
+parallel_episodes: 1
+cost_cap_usd: 150
+name: claude_code_opus55_high_seed0
+message_channels: all
+models:
+  buyers: &opus
+    provider: claude_code
+    model: claude-opus-5-5
+    price_in_per_m: 4.0
+    price_out_per_m: 20.0
+    temperature: null
+    extra_body: {reasoning: {effort: high}}
+  managers: *opus
+  summarizer: *opus

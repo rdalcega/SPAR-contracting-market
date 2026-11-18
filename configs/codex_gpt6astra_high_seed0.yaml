@@ -1,0 +1,20 @@
+# One full-length episode (seed 0), the Codex counterpart of claude_code_fable52_high_seed0.yaml: every seat and the
+# summarizer on GPT-6 Astra at high effort through Codex (provider codex), all message channels on; the time
+# settings are the spec's defaults. Needs a ChatGPT login in Codex (`codex login`). The prices are OpenAI's API
+# prices for the model ($10 / $50 per million tokens, OpenAI's help center, November 2026): they set the
+# participants' token charges and the cost cap (a notional dollar figure, set high so that it does not stop the run).
+seeds: [0]
+parallel_episodes: 1
+cost_cap_usd: 400
+name: codex_gpt6astra_high_seed0
+message_channels: all
+models:
+  buyers: &astra
+    provider: codex
+    model: gpt-6-astra
+    price_in_per_m: 10.0
+    price_out_per_m: 50.0
+    temperature: null
+    extra_body: {reasoning: {effort: high}}
+  managers: *astra
+  summarizer: *astra
