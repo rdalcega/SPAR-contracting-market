@@ -1,0 +1,329 @@
+<title>Qwen Messages Experiment</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: one reading column (~72ch) for the argument, charts allowed to run the full container width. */
+:root {
+  --bg: #f6f7f5; --surface: #fdfdfc; --ink: #141816; --ink-2: #4b524e; --muted: #7d847f; --rule: #dde1dd;
+  --off: #2a78d6; --on: #eb6834; --hi: #e9eee9;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-head: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #101312; --surface: #181b1a; --ink: #edf0ed; --ink-2: #bcc3be; --muted: #868d88; --rule: #2a2f2c;
+  --off: #3987e5; --on: #d95926; --hi: #222826; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #101312; --surface: #181b1a; --ink: #edf0ed; --ink-2: #bcc3be; --muted: #868d88; --rule: #2a2f2c;
+  --off: #3987e5; --on: #d95926; --hi: #222826; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--f-body); }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 40px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--f-head); text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: 2.1rem; font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: 1.35rem; font-weight: 600; margin-top: 56px; padding-top: 14px; border-top: 1px solid var(--rule); }
+h3 { font-size: 1.02rem; font-weight: 600; margin-top: 28px; }
+p, li { max-width: 72ch; }
+p { margin: 12px 0; }
+.eyebrow { font: 500 0.74rem/1 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.12rem; color: var(--ink); margin-top: 16px; }
+.muted { color: var(--muted); }
+.small { font-size: 0.86rem; }
+.mono, td.num, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.key { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; white-space: nowrap; }
+.sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.sw.off { background: var(--off); } .sw.on { background: var(--on); }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; margin-top: 28px; }
+.facts div { background: var(--surface); padding: 12px 14px; min-width: 0; }
+.facts b { display: block; font: 500 1.25rem/1.2 var(--f-mono); font-variant-numeric: tabular-nums; }
+.facts span { font-size: 0.8rem; color: var(--ink-2); }
+.findings { display: grid; gap: 14px; margin-top: 18px; padding: 0; list-style: none; }
+.findings li { padding-left: 16px; border-left: 2px solid var(--rule); }
+.findings b { font-weight: 600; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; margin-top: 16px; min-width: 0; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+th { text-align: left; font: 500 0.72rem/1.3 var(--f-mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);
+  padding: 6px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+td { padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+tr.group td { font: 600 0.8rem/1.4 var(--f-head); color: var(--ink-2); padding-top: 16px; border-bottom: none; }
+tr.metric { cursor: pointer; }
+tr.metric:hover td, tr.metric.sel td { background: var(--hi); }
+tr.metric:focus-visible { outline: 2px solid var(--off); outline-offset: -2px; }
+td.bar { width: 34%; min-width: 220px; padding-block: 2px; }
+svg text { fill: var(--muted); font: 11px var(--f-mono); }
+svg .ink { fill: var(--ink); } svg .ink2 { fill: var(--ink-2); }
+.tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--rule);
+  border-radius: 4px; padding: 6px 8px; font: 12px/1.4 var(--f-mono); box-shadow: 0 2px 8px rgba(0,0,0,0.12); z-index: 20; max-width: 280px; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+.seg button { font: 500 0.8rem var(--f-body); background: var(--surface); color: var(--ink-2); border: 0; padding: 5px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button:focus-visible { outline: 2px solid var(--off); outline-offset: -2px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.cols > * { min-width: 0; }
+blockquote { margin: 0; padding: 12px 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+blockquote p { margin: 6px 0 0; font-size: 0.92rem; }
+blockquote .meta { font: 0.74rem/1.4 var(--f-mono); color: var(--muted); }
+blockquote .note { font-size: 0.84rem; color: var(--ink-2); margin-top: 8px; }
+.quotes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 14px; }
+details summary { cursor: pointer; font-weight: 500; margin-top: 16px; }
+@media (prefers-reduced-motion: no-preference) { tr.metric td { transition: background 120ms; } }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Contracting market · Qwen3.5-9B · messages ablation · 2026-11-22</div>
+  <h1>Qwen Messages Experiment</h1>
+  <!--INTRO-->
+
+  <div class="facts" id="facts"></div>
+
+  <!--FINDINGS-->
+
+  <h2>Every metric, paired by seed</h2>
+  <p>Each row compares the two arms on the same <span data-n="seeds"></span> seeds. A seed's value is the mean of its
+  <span data-n="reps"></span> repetitions; the bar is the mean of the per-seed differences (messages on minus off) as a
+  percentage of the off mean's size, with its 95% t interval (an arrow marks an interval running past the axis; hover
+  a row for the exact interval). <b>p</b> is the exact sign-flip permutation test over the per-seed differences (its
+  smallest possible value is <span data-n="pmin"></span>). Click a row to see that metric seed by seed below.</p>
+  <div class="panel scroll"><table id="forest"></table></div>
+
+  <h3 id="seed-title">Welfare, seed by seed</h3>
+  <div class="row small" style="margin-top:8px">
+    <div><span class="key"><span class="sw off"></span>messages off</span><span class="key"><span class="sw on"></span>messages on</span>
+      <span class="muted">large dot: mean of the repetitions; small rings: each repetition</span></div>
+    <div class="seg" role="group" aria-label="View"><button id="v-chart" aria-pressed="true">Chart</button><button id="v-table" aria-pressed="false">Table</button></div>
+  </div>
+  <div class="panel" id="seed-panel"></div>
+
+  <h2>What the agents said to each other</h2>
+  <!--MESSAGES-->
+  <div class="cols">
+    <div class="panel"><h3 style="margin-top:0">Messages by channel</h3><div id="channels"></div></div>
+    <div class="panel"><h3 style="margin-top:0">Share of messages by topic</h3><div id="topics"></div>
+      <p class="small muted">Keyword families, case-insensitive; a message can match several. A reading aid checked
+      against samples, not a classifier.</p></div>
+  </div>
+  <div class="quotes" id="quotes"></div>
+
+  <h2>How the experiment ran</h2>
+  <!--METHOD-->
+
+  <details><summary>All <span data-n="episodes"></span> episodes</summary><div class="panel scroll"><table id="episodes"></table></div></details>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById("data").textContent);
+const $ = id => document.getElementById(id);
+const GROUPS = [
+  ["Outcomes", ["welfare", "welfare_per_worth", "buyer_gain_mean", "manager_profit_mean", "manager_share", "tasks_done_rate",
+    "mean_delivered_q", "mean_value_frac", "success_rate", "late_rate", "unpaid_amount"]],
+  ["Prices and contracts", ["mean_price_to_worth", "bid_price_to_worth", "bids_per_post", "escrow_share", "disputes", "own_run_share", "close_day"]],
+  ["How the agents acted", ["buyer_invalid_action_rate", "manager_invalid_action_rate", "buyer_invalid_rate_no_msgs",
+    "manager_invalid_rate_no_msgs", "buyer_failed_per_turn", "manager_failed_per_turn", "output_tokens_per_call",
+    "token_credits_per_turn", "token_credits"]],
+  ["Cost and messages", ["dollars", "summarizer_dollars", "messages"]],
+];
+const byKey = Object.fromEntries(D.comparison.map(c => [c.key, c]));
+const PCT_KEYS = new Set(["welfare_per_worth", "manager_share", "tasks_done_rate", "mean_price_to_worth", "bid_price_to_worth",
+  "escrow_share", "mean_value_frac", "success_rate", "late_rate", "own_run_share", "buyer_invalid_action_rate", "manager_invalid_action_rate",
+  "buyer_invalid_rate_no_msgs", "manager_invalid_rate_no_msgs"]);
+function fmt(key, v) {
+  if (v == null || !isFinite(v)) return "–";
+  if (PCT_KEYS.has(key)) return (v * 100).toFixed(1) + "%";
+  if (key.includes("dollars")) return "$" + v.toFixed(2);
+  const a = Math.abs(v);
+  if (a === 0) return "0";
+  if (a < 0.01) return v.toPrecision(2);
+  return a >= 100 ? v.toFixed(0) : a >= 10 ? v.toFixed(1) : a >= 1 ? v.toFixed(2) : v.toFixed(3);
+}
+function fmtDiff(key, v) {
+  if (v == null) return "–";
+  if (PCT_KEYS.has(key)) return (v >= 0 ? "+" : "−") + Math.abs(v * 100).toFixed(1) + " pt";
+  return (v >= 0 ? "+" : "−") + fmt(key, Math.abs(v));
+}
+const pct = v => (v >= 0 ? "+" : "−") + Math.abs(v * 100).toFixed(0) + "%";
+function mean(a) { const v = (a || []).filter(x => x != null); return v.length ? v.reduce((p, q) => p + q) / v.length : null; }
+const N = (() => {
+  const s = byKey.welfare.seeds, reps = new Set(D.episodes.map(e => e.rep));
+  return { seeds: s.length, reps: reps.size, seedRange: s.length ? s[0] + "–" + s[s.length - 1] : "–",
+    pmin: (2 / 2 ** s.length).toFixed(3), episodes: D.episodes.length };
+})();
+document.querySelectorAll("[data-n]").forEach(e => { e.textContent = N[e.dataset.n]; });
+const svgNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(svgNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const tip = $("tip");
+function showTip(ev, html) { tip.innerHTML = html; tip.hidden = false; moveTip(ev); }
+function moveTip(ev) {
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function hideTip() { tip.hidden = true; }
+
+// Facts row
+(function facts() {
+  const eps = D.episodes, ok = eps.filter(e => e.status === "ok");
+  const sum = f => ok.reduce((s, e) => s + (e[f] || 0), 0);
+  const items = [
+    [ok.length + " / " + eps.length, "markets settled (status ok)"],
+    [N.seeds + " × " + N.reps, "seeds " + N.seedRange + " × repetitions, per arm"],
+    ["$" + sum("dollars").toFixed(2), "model calls of the settled markets, both arms"],
+    [String(sum("lost_turns")), "turns lost to failed calls, all episodes"],
+    [String(D.message_figures.total), "messages sent, messages-on arm"],
+  ];
+  $("facts").innerHTML = items.map(([b, s]) => `<div><b>${b}</b><span>${s}</span></div>`).join("");
+})();
+
+// Forest table
+let selected = "welfare";
+(function forest() {
+  const rows = [], vals = [];
+  for (const [, keys] of GROUPS) for (const k of keys) {
+    const c = byKey[k];
+    if (c && c.rel_ci95) vals.push(...c.rel_ci95);
+  }
+  const lim = Math.min(1, Math.max(0.25, ...vals.map(Math.abs)));
+  const W = 260, H = 24, pad = 10, x = v => pad + (Math.max(-lim, Math.min(lim, v)) + lim) / (2 * lim) * (W - 2 * pad);
+  let html = `<thead><tr><th>Metric</th><th class="num">Off</th><th class="num">On</th><th class="num">Diff</th>
+    <th>Change vs off (95% CI), axis ±${Math.round(lim * 100)}%</th><th class="num">p</th><th class="num">On &gt; off</th></tr></thead><tbody>`;
+  for (const [g, keys] of GROUPS) {
+    html += `<tr class="group"><td colspan="7">${g}</td></tr>`;
+    for (const k of keys) {
+      const c = byKey[k];
+      if (!c || c.mean_diff == null) continue;
+      let bar = `<span class="muted small">off is 0: no ratio</span>`;
+      let title = "95% CI of the difference: " + fmtDiff(k, c.ci95[0]) + " to " + fmtDiff(k, c.ci95[1]);
+      if (c.rel_ci95) {
+        const r = c.rel_diff, [lo, hi] = c.rel_ci95, sig = c.p_signflip < 0.05;
+        const arrow = side => side < 0 ? `<path d="M${pad - 8},${H / 2} l7,-4.5 v9 z" fill="var(--ink-2)"/>`
+                                        : `<path d="M${W - pad + 8},${H / 2} l-7,-4.5 v9 z" fill="var(--ink-2)"/>`;
+        bar = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="${x(0)}" x2="${x(0)}" y1="2" y2="${H - 2}" stroke="var(--rule)" stroke-width="1"/>
+          <line x1="${x(lo)}" x2="${x(hi)}" y1="${H / 2}" y2="${H / 2}" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"/>
+          ${lo < -lim ? arrow(-1) : ""}${hi > lim ? arrow(1) : ""}
+          <circle cx="${x(r)}" cy="${H / 2}" r="4.5" fill="${sig ? "var(--ink)" : "var(--surface)"}" stroke="var(--ink)" stroke-width="1.5"/>
+        </svg>`;
+        title += ` (${pct(r)} vs off; ${pct(lo)} to ${pct(hi)})`;
+      }
+      html += `<tr class="metric" tabindex="0" data-k="${k}" title="${title}">
+        <td>${c.label}</td><td class="num">${fmt(k, c.mean_off)}</td><td class="num">${fmt(k, c.mean_all)}</td>
+        <td class="num">${fmtDiff(k, c.mean_diff)}</td><td class="bar">${bar}</td>
+        <td class="num">${c.p_signflip.toFixed(3)}</td><td class="num">${c.seeds_all_higher}/${c.diffs.length}</td></tr>`;
+    }
+  }
+  $("forest").innerHTML = html + "</tbody>";
+  $("forest").addEventListener("click", e => { const tr = e.target.closest("tr.metric"); if (tr) select(tr.dataset.k); });
+  $("forest").addEventListener("keydown", e => {
+    const tr = e.target.closest("tr.metric");
+    if (tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); select(tr.dataset.k); }
+  });
+})();
+
+let view = "chart";
+function select(k) {
+  selected = k;
+  document.querySelectorAll("tr.metric").forEach(tr => tr.classList.toggle("sel", tr.dataset.k === k));
+  $("seed-title").textContent = byKey[k].label + ", seed by seed";
+  drawSeeds();
+}
+$("v-chart").onclick = () => { view = "chart"; $("v-chart").setAttribute("aria-pressed", "true"); $("v-table").setAttribute("aria-pressed", "false"); drawSeeds(); };
+$("v-table").onclick = () => { view = "table"; $("v-table").setAttribute("aria-pressed", "true"); $("v-chart").setAttribute("aria-pressed", "false"); drawSeeds(); };
+
+function drawSeeds() {
+  const c = byKey[selected], k = selected, panel = $("seed-panel");
+  const seeds = Object.keys(c.reps).map(Number).sort((a, b) => a - b);
+  if (view === "table") {
+    let h = `<div class="scroll"><table><thead><tr><th>Seed</th><th class="num">Off rep 1</th><th class="num">Off rep 2</th><th class="num">Off mean</th>
+      <th class="num">On rep 1</th><th class="num">On rep 2</th><th class="num">On mean</th><th class="num">Diff</th></tr></thead><tbody>`;
+    for (const s of seeds) {
+      const r = c.reps[s], off = r.off || [], on = r.all || [], mo = mean(off), ma = mean(on);
+      h += `<tr><td class="num">${s}</td><td class="num">${fmt(k, off[0])}</td><td class="num">${fmt(k, off[1])}</td><td class="num">${fmt(k, mo)}</td>
+        <td class="num">${fmt(k, on[0])}</td><td class="num">${fmt(k, on[1])}</td><td class="num">${fmt(k, ma)}</td>
+        <td class="num">${mo != null && ma != null ? fmtDiff(k, ma - mo) : "–"}</td></tr>`;
+    }
+    panel.innerHTML = h + "</tbody></table></div>";
+    return;
+  }
+  const all = seeds.flatMap(s => [...(c.reps[s].off || []), ...(c.reps[s].all || [])]).filter(v => v != null);
+  if (!all.length) { panel.innerHTML = '<p class="muted">No values for this metric.</p>'; return; }
+  let lo = Math.min(...all), hi = Math.max(...all);
+  if (lo === hi) { lo -= 1; hi += 1; }
+  const span = hi - lo; lo -= span * 0.06; hi += span * 0.06;
+  if (Math.min(...all) >= 0 && lo < 0) lo = 0;
+  const W = 900, rowH = 34, top = 10, left = 56, right = 16, H = top + seeds.length * rowH + 30;
+  const x = v => left + (v - lo) / (hi - lo) * (W - left - right);
+  panel.innerHTML = "";
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": c.label + " per seed, both arms" }, panel);
+  const ticks = niceTicks(lo, hi, 5);
+  for (const t of ticks) {
+    el("line", { x1: x(t), x2: x(t), y1: top, y2: H - 24, stroke: "var(--rule)", "stroke-width": 1 }, svg);
+    const tx = el("text", { x: x(t), y: H - 8, "text-anchor": "middle" }, svg); tx.textContent = fmt(k, t);
+  }
+  seeds.forEach((s, i) => {
+    const y = top + i * rowH + rowH / 2, r = c.reps[s];
+    const lab = el("text", { x: 8, y: y + 4, class: "ink2" }, svg); lab.textContent = "seed " + s;
+    const mo = mean(r.off), ma = mean(r.all);
+    if (mo != null && ma != null) el("line", { x1: x(mo), x2: x(ma), y1: y, y2: y, stroke: "var(--muted)", "stroke-width": 2 }, svg);
+    for (const [arm, color, dy] of [["off", "var(--off)", -6], ["all", "var(--on)", 6]]) {
+      for (const v of (r[arm] || []).filter(v => v != null)) el("circle", { cx: x(v), cy: y + dy, r: 3.5, fill: "var(--surface)", stroke: color, "stroke-width": 1.5 }, svg);
+      const m = mean(r[arm]);
+      if (m == null) continue;
+      el("circle", { cx: x(m), cy: y, r: 6, fill: color, stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    }
+    const hit = el("rect", { x: 0, y: y - rowH / 2, width: W, height: rowH, fill: "transparent" }, svg);
+    hit.addEventListener("mousemove", ev => showTip(ev, `<b>seed ${s}</b><br>off: ${(r.off || []).map(v => fmt(k, v)).join(", ")} → mean ${fmt(k, mo)}
+      <br>on: ${(r.all || []).map(v => fmt(k, v)).join(", ")} → mean ${fmt(k, ma)}${c.excluded.includes(s) ? "<br>(not in the test: a value is missing)" : ""}${mo != null && ma != null ? "<br>diff " + fmtDiff(k, ma - mo) : ""}`));
+    hit.addEventListener("mouseleave", hideTip);
+  });
+}
+function niceTicks(lo, hi, n) {
+  const step0 = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0);
+  const out = [];
+  for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) out.push(+t.toFixed(10));
+  return out;
+}
+
+// Messages
+(function messages() {
+  const mf = D.message_figures;
+  const bars = (target, entries, total, asShare) => {
+    const max = Math.max(...entries.map(e => e[1]));
+    $(target).innerHTML = entries.map(([name, n]) => `<div style="display:grid;grid-template-columns:minmax(0,10.5rem) 1fr 4.2rem;gap:10px;align-items:center;margin:6px 0">
+      <span class="small" style="overflow-wrap:anywhere">${name}</span>
+      <span style="display:block;height:12px;border-radius:0 4px 4px 0;background:var(--on);width:${(n / max * 100).toFixed(1)}%;min-width:2px"></span>
+      <span class="num small" style="text-align:right">${asShare ? (n / total * 100).toFixed(0) + "%" : n}</span></div>`).join("");
+  };
+  bars("channels", Object.entries(mf.by_channel).sort((a, b) => b[1] - a[1]), mf.total, false);
+  bars("topics", Object.entries(mf.by_topic).sort((a, b) => b[1] - a[1]), mf.total, true);
+  $("quotes").innerHTML = D.quotes.map(q => `<blockquote>
+    <div class="meta">seed ${q.seed} · ${q.rep.replace("rep", "repetition ")} · day ${q.day}, round ${q.round} · ${q.sender} (${q.sender_role}) → ${q.to}</div>
+    <p>${q.text.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</p><div class="note">${q.note}</div></blockquote>`).join("");
+})();
+
+// Episodes table
+(function episodes() {
+  const cols = [["arm", "Arm"], ["rep", "Rep"], ["seed", "Seed"], ["status", "Status"], ["close_day", "Days"], ["close_reason", "Close"],
+    ["welfare", "Welfare"], ["tasks_created", "Tasks"], ["contracts", "Contracts"], ["escrow_share", "Escrow"],
+    ["mean_price_to_worth", "Price/worth"], ["mean_delivered_q", "Quality"], ["messages", "Msgs"], ["lost_turns", "Lost turns"], ["dollars", "Cost"]];
+  const eps = [...D.episodes].sort((a, b) => a.seed - b.seed || a.arm.localeCompare(b.arm) || a.rep.localeCompare(b.rep));
+  const cell = (e, k) => typeof e[k] === "number" && !["seed", "close_day", "tasks_created", "contracts", "messages", "lost_turns"].includes(k) ? fmt(k, e[k]) : (e[k] ?? "–");
+  $("episodes").innerHTML = `<thead><tr>${cols.map(([, h]) => `<th>${h}</th>`).join("")}</tr></thead><tbody>` +
+    eps.map(e => `<tr>${cols.map(([k]) => `<td class="${typeof e[k] === "number" ? "num" : ""}">${k === "arm" ? (e.arm === "all" ? "on" : "off") : cell(e, k)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+})();
+
+select("welfare");
+</script>

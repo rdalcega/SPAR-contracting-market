@@ -1,0 +1,26 @@
+# Messages experiment, the arm with the message channels off: every seat on Qwen3.5-9B with reasoning on.
+# The models are those of qwen35_9b_reasoning_all.yaml (see there for why one endpoint is pinned), except the
+# prices: here they are what primeintellect/bf16 bills ($0.17 in, $0.25 out per million tokens, 2026-11-22), so the
+# system prompts state the token prices the seats are really charged. The seeds are fresh ones (0 to 11 are used
+# by other runs). Its pair is qwen35_9b_reasoning_msgs_all.yaml: the same seeds
+# and models with every channel on.
+# Each seed is run twice: once with --out runs/qwen35_9b_msgs/rep1 and once with --out runs/qwen35_9b_msgs/rep2.
+# The cost cap is per invocation, so per repetition of this arm.
+# The summarizer (the spec default, Claude Sonnet 5.5) is never called with channels off; the all arm uses it.
+seeds: [12, 13, 14, 15, 16, 17, 18, 19]
+parallel_episodes: 4
+cost_cap_usd: 20
+name: qwen35_9b_reasoning_msgs_off
+message_channels: off
+models:
+  buyers: &qwen
+    provider: openrouter
+    model: qwen/qwen3.5-9b
+    price_in_per_m: 0.17
+    price_out_per_m: 0.25
+    max_tokens: 32000
+    extra_body:
+      reasoning: {enabled: true}
+      tool_choice: auto
+      provider: {order: [primeintellect/bf16], allow_fallbacks: false, require_parameters: true}
+  managers: *qwen

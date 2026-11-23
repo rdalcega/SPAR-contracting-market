@@ -1,0 +1,16 @@
+[
+ {"rep": "rep2", "seed": 15, "day": 4, "round": 1, "sender": "M-2a4", "starts": "Day 4 Round 1: Forum appears empty",
+  "note": "The only explicit proposal to coordinate prices in 3,591 messages. No manager answered it."},
+ {"rep": "rep2", "seed": 15, "day": 4, "round": 2, "sender": "M-364", "starts": "Posted bids on 3 open tasks",
+  "note": "The next round, a rival announces it has bid 13 credits on the same three posts M-2a4 bid 16 on."},
+ {"rep": "rep1", "seed": 17, "day": 4, "round": 2, "sender": "M-d75", "starts": "M-d75 is available for new contracts",
+  "note": "Managers often broadcast their own run costs and qualities to everyone, buyers included."},
+ {"rep": "rep1", "seed": 12, "day": 6, "round": 1, "sender": "B-0d7", "starts": "URGENT ESCROW ALERT: Contract-9",
+  "note": "The commonest kind of message: a buyer chasing a delivery before a deadline."},
+ {"rep": "rep1", "seed": 12, "day": 9, "round": 3, "sender": "B-80e", "starts": "B-80e update: Testing contract-13",
+  "note": "Buyers sometimes publish a manager's poor reading to everyone."},
+ {"rep": "rep2", "seed": 15, "day": 25, "round": 3, "sender": "B-c1c", "starts": "Day 25 Round 3: Forum still empty",
+  "note": "Buyers do coordinate, but on reputation: here two buyers agree to prefer other managers over a late one."},
+ {"rep": "rep2", "seed": 17, "day": 24, "round": 3, "sender": "B-fd7", "starts": "Day 24 R3: Acknowledge contracts 26",
+  "note": "The episode behind most of the unpaid credits: both buyers ran their balances to zero and could not pay."}
+]

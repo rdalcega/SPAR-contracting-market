@@ -1,0 +1,63 @@
+<!--INTRO-->
+<p class="lede">Letting Qwen3.5-9B agents message each other did not measurably change how the market turned out.
+Welfare, prices, quality and delivery were all within noise across 8 seeds run twice in each arm. Two things did
+change clearly: managers made fewer invalid actions, and each market cost about 40% more to run.</p>
+<p class="small muted"><span class="key"><span class="sw off"></span>messages off</span>
+<span class="key"><span class="sw on"></span>messages on (all channels)</span>
+Same model, same endpoint, same seeds; only <code>message_channels</code> differs.</p>
+<!--FINDINGS-->
+<ul class="findings">
+  <li><b>No detectable effect on outcomes.</b> Welfare was 443 credits with messages against 405 without (+9.5%),
+  but the 95% interval runs from −37 to +114 and only 5 of 8 seeds moved up. Welfare per credit of task worth (22.4%
+  vs 24.7%), delivered quality (6.34 vs 6.47), tasks delivered (96% vs 98%) and close day (20.1 vs 19.8) barely move.
+  With this design, an effect on welfare smaller than about ±75 credits (±19%) would not show.</li>
+  <li><b>Managers made fewer mistakes.</b> Their invalid-action rate fell from 18.9% to 7.5%, lower on all 8 seeds.
+  Part of that is arithmetic, since message actions almost never fail and swell the denominator. Leaving messages out,
+  it still falls from 18.9% to 12.2% (8 of 8 seeds), and failed actions per turn from 0.21 to 0.12. Most of the drop
+  is in deliveries: managers tried to deliver a result that had not arrived, or one already delivered, 132 times
+  without messages and 38 times with them. Buyers' messages kept asking "has it been delivered?", which seems to keep
+  managers' picture of their contracts straight. The buyers' apparent improvement does not survive leaving messages
+  out (11.5% vs 8.6%, p = 0.09).</li>
+  <li><b>Buyers chased instead of cancelling.</b> Without messages, buyers tried to end contracts before they were
+  allowed to 214 times; with messages, 109 times. They sent urgent reminders instead, and added 85 malformed
+  <code>send_message</code> calls of their own.</li>
+  <li><b>Running costs rose 39%.</b> $1.35 per market against $0.97. About half of the $0.38 is the summarizer
+  (Claude Sonnet 5.5) that condenses conversations; the rest is longer prompts and slightly longer replies (token
+  credits per turn +21%, 8 of 8 seeds).</li>
+  <li><b>A possible shift of surplus to managers, not established.</b> With messages, managers' share of welfare rose
+  from 55% to 81% and the mean price rose from 22% to 31% of task worth, while buyers' mean score fell by 28 credits.
+  None of these is close to significant (p from 0.16 to 0.42). The shift comes mostly from seeds 14 and 16, where in
+  both runs with messages the managers took more than the whole welfare (buyers ended below what they started with).
+  This is the effect to test with more seeds. Unpaid credits look higher with messages too (43 against 10), but that
+  is one market: in the second run of seed 17 with messages, both buyers spent their balances to zero and left 460
+  credits unpaid.</li>
+</ul>
+<!--MESSAGES-->
+<p>Over the 16 messages-on markets the agents sent 3,591 messages, about 224 per market. 70% were private messages
+between a buyer and a manager, almost all about getting work delivered and paid. Managers' broadcasts were mostly
+availability notices, often listing their own bid prices and run costs. That is transparency that helps rivals
+undercut and buyers bargain, not collusion. Managers sent each other only 229 messages (6%). Across the whole
+experiment one manager proposed coordinating prices; nobody answered, and the next round a rival publicly bid below it.</p>
+<!--METHOD-->
+<p><b>Design.</b> Two arms, identical except <code>message_channels</code>: <code>off</code> and <code>all</code>. Each
+ran seeds 12 to 19 (fresh: 0 to 11 are used elsewhere) twice, as separate runs, so 32 markets. A seed fixes the
+market's draws (tasks, worths, due days, the last arrival day, turn orders), so an off and an on market of one seed
+face the same tasks. The models' replies differ from run to run, which is what the repetitions measure.</p>
+<p><b>Model.</b> All 5 seats (2 buyers, 3 managers) ran <code>qwen/qwen3.5-9b</code> on OpenRouter, pinned to the
+PrimeIntellect bf16 endpoint with no fallbacks; every one of the calls was served there. Reasoning was on (all 15,499 calls
+reasoned), <code>tool_choice</code> auto, temperature 0.8, max_tokens 32,000. The system prompts state the token prices
+the endpoint bills, $0.17 in and $0.25 out per million. The earlier Qwen runs on seeds 0 to 5 stated $0.037/$0.055, so
+their token costs, and the agents' sense of them, are not comparable with these. In the on arm, conversation
+summaries are written by the spec's default summarizer, Claude Sonnet 5.5; it is part of what messaging adds.</p>
+<p><b>Statistics.</b> For each metric, each seed's value per arm is the mean of its 2 repetitions, and the arms are
+compared on the 8 per-seed differences: a 95% t interval and an exact sign-flip permutation test, whose smallest
+possible p is 0.008. Some 30 metrics are tested without correction, so one or two would reach p &lt; 0.05 by chance
+alone. The findings above lean only on effects at p = 0.008 that point the same way on all 8 seeds.</p>
+<p><b>Running.</b> All 32 markets settled normally. Four of the 9,570 turns (15,499 model calls) were lost to the provider's rate
+limit (HTTP 429), two in each arm: three when I briefly ran both repetitions at once (16 markets in parallel), one
+later at 8. A first start of repetition 2 during that burst was discarded and rerun from scratch. Messages longer than
+500 characters reach their recipient cut (6 of 3,591); the analysis reads what was delivered. The run cost $37.64
+on the key ($37.02 in the settled markets; the rest is the discarded start and replayed days).</p>
+<p class="small muted">Code: <code>configs/qwen35_9b_reasoning_msgs_{off,all}.yaml</code> and
+<code>experiments/qwen_messages/</code> (analysis, page builder, quotes) on branch
+<code>worktree-qwen-messages-ablation</code>. Runs: <code>runs/qwen35_9b_msgs/rep{1,2}/</code>.</p>
