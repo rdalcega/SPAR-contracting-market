@@ -1,0 +1,25 @@
+# Smoke run on Google Cloud: every seat and the summarizer on DeepSeek V4.1 Flash, snapshot 1017 (Preview on Vertex),
+# through Vertex AI's OpenAI-compatible endpoint (provider vertex, market/vertex.py), thinking on, all message channels
+# on, in a short episode (about 3 days). Needs the gcloud CLI logged in (`gcloud auth login`) with access to the
+# project in base_url; calls are billed to that project. Vertex leaves this model's thinking off unless asked:
+# chat_template_kwargs.thinking turns it on (checked 2026-11-26). Prices: Vertex's, $0.30 / $1.20 per 1M input /
+# output tokens (as in configs/model_garden/mg_dsv41flash1017.yaml).
+seeds: [0]
+parallel_episodes: 1
+cost_cap_usd: 2
+name: vertex_dsv41flash1017_smoke
+message_channels: all
+time: {horizon_min_days: 2, horizon_end_prob: 0.9, close_after_due_days: 1}
+value: {late_decay: 1}
+tasks: {due_days_range: [1, 2]}
+models:
+  buyers: &deepseek
+    provider: vertex
+    base_url: https://aiplatform.googleapis.com/v1/projects/silicoase-researchers-agora/locations/global/endpoints/openapi
+    model: deepseek-ai/deepseek-v4.1-flash-1017-maas
+    price_in_per_m: 0.30
+    price_out_per_m: 1.20
+    max_tokens: 32000
+    extra_body: {chat_template_kwargs: {thinking: true}}
+  managers: *deepseek
+  summarizer: *deepseek
