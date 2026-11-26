@@ -150,7 +150,8 @@ def _seeds(path, v):
 
 MODES = ("off", "managers", "buyers", "within_roles", "all")
 PROVIDERS = ("openrouter", "openai_compatible", "ollama", "mock")
-ADDED_PROVIDERS = ("claude_code", "codex")  # models.md 3, "Another provider ... may be added": market/live.py
+HARNESS_PROVIDERS = ("claude_code", "codex")  # market/live.py
+ADDED_PROVIDERS = (*HARNESS_PROVIDERS, "vertex")  # models.md 3, "Another provider ... may be added"
 FREE_PROVIDERS = ("mock", "ollama")
 EFFORTS = {"claude_code": ("low", "medium", "high", "xhigh", "max"),  # Claude Code's --effort levels
            "codex": ("low", "medium", "high", "xhigh", "max", "ultra")}  # Codex's reasoning efforts
@@ -229,8 +230,10 @@ def _spec(agent):
             _fail(f"{path}.provider", "is required")
         if "model" not in spec and spec["provider"] != "mock":
             _fail(f"{path}.model", "is required, except with provider mock")
-        if "base_url" not in spec and spec["provider"] == "openai_compatible":
-            _fail(f"{path}.base_url", "is required with provider openai_compatible")
+        if "base_url" not in spec and spec["provider"] in ("openai_compatible", "vertex"):
+            _fail(f"{path}.base_url", f"is required with provider {spec['provider']}")
+        if "api_key_env" in spec and spec["provider"] == "vertex":
+            _fail(f"{path}.api_key_env", "is not used by provider vertex (it uses the user's gcloud login)")
         if agent and spec["provider"] not in FREE_PROVIDERS:
             for k in ("price_in_per_m", "price_out_per_m"):
                 if not spec.get(k, 0) > 0:
@@ -422,7 +425,7 @@ def _check(cfg):
     specs = [*((f"models.{k}", m[k]) for k in ("buyers", "managers", "summarizer")),
              *((f"models.{seats}.{k}", s) for seats in ("buyer_seats", "manager_seats") for k, s in m[seats].items())]
     for path, spec in specs:
-        if spec["provider"] in ADDED_PROVIDERS:
+        if spec["provider"] in HARNESS_PROVIDERS:
             _harness(path, spec)
 
     for role in ("buyer", "manager"):

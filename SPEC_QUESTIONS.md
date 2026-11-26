@@ -1379,3 +1379,28 @@ GPT review of the design. Q30 is of the same family.
   accepted. (An earlier decision that they did not was withdrawn: it rested on the belief that the agents could use
   the harnesses' own tools, which they cannot.) The notice and the answer to a withheld `compute` call were chosen
   by the user; they apply only on these two providers.
+
+### Q119. Provider vertex: OpenAI-compatible, but with a key that has to be fetched again
+- Where: `models.md`, section 3, the providers table and its last paragraph ("Another provider (an API that is not
+  OpenAI-compatible) may be added behind the same interface"), with "The key is the value of that environment
+  variable when the backend is set up"
+- Quote: "A spec's `base_url` replaces the provider's; its `api_key_env` replaces the provider's key variable ...
+  The key is the value of that environment variable when the backend is set up (below)."
+- Case: Google Cloud's Vertex AI serves its models (Gemini and the Model Garden's managed models) through an
+  OpenAI-compatible endpoint, `{base}/v1/projects/{project}/locations/{region}/endpoints/openapi/chat/completions`.
+  Its key is a Google access token that lasts one hour. `openai_compatible` with `api_key_env` reads the key once,
+  when the backend is set up, so a run longer than an hour loses every turn after that to HTTP 401. Vertex is
+  OpenAI-compatible, so it is not literally "an API that is not OpenAI-compatible".
+- Reading taken: the provider `vertex` is added (`market/vertex.py`, 2026-11-26). It is `openai_compatible` in every
+  respect (section 4 with that row's differences: no `usage` field, no `X-Title`; cost from the spec's prices, 4.9)
+  except the key: the spec must give `base_url` and may not give `api_key_env`, and the token comes from the user's
+  gcloud login (`gcloud config config-helper`). It is fetched when the backend is set up (no token: setup fails),
+  again when less than 10 minutes of it are left, and once more, with gcloud made to refresh it, when a request
+  gets HTTP 401; a fetch that fails is a failed attempt, retried as 4.4. A second departure, on the token count:
+  output tokens that `usage` counts in `total_tokens` but not in `completion_tokens` (Gemini's thinking, which
+  Google bills as output; whether Vertex's OpenAI layer leaves them out is not yet checked on a real reply) are
+  added to the output tokens, so the cost (4.9) and the cost cap count them. Known per-model limits are Vertex's, not the provider's: gpt-oss-120b there
+  refuses any forced `tool_choice` (HTTP 400 "Forced tool calling is not supported for this model", checked
+  2026-11-25), which the market's turns use.
+- Open: whether this provider is a reading of section 3 you accept, and so whether runs on it count as the same
+  market as runs on `openai_compatible`.

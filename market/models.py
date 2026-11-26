@@ -24,6 +24,7 @@ _PROVIDERS = {  # section 3: (base URL, API key variable) when the spec gives no
     "ollama": ("http://localhost:11434/v1", None),
     "claude_code": (None, "CLAUDE_CODE_OAUTH_TOKEN"),  # market/claude_code.py: Claude Code on a subscription
     "codex": (None, None),  # market/codex.py: Codex on a ChatGPT subscription, with the user's Codex login
+    "vertex": (None, None),  # market/vertex.py: Vertex AI, with the user's gcloud login; the spec gives base_url
 }
 _TITLE = "contracting-market"
 _RETRIED = (408, 409, 425, 429)
@@ -166,6 +167,9 @@ def backend(spec, llm, tracker, *, env=None, sleep=time.sleep, clock=time.time):
     if spec["provider"] == "codex":
         from . import codex
         return codex.backend(spec, llm, tracker, sleep=sleep, clock=clock)
+    if spec["provider"] == "vertex":
+        from . import vertex
+        return vertex.backend(spec, llm, tracker, sleep=sleep, clock=clock)
     return _Backend(spec, llm, tracker, base, key, sleep, clock)
 
 
@@ -324,8 +328,9 @@ class _Backend:
                 self.tracker.add(reply.cost, reply.cost_known)
                 return reply
 
-    def _attempt(self, data):
-        """4.3: one request: its status and complete body, else _Lost (a network failure) or _Failed."""
+    def _attempt(self, data, headers=None):
+        """4.3: one request (with `headers`, else the backend's): its status and complete body, else _Lost (a
+        network failure) or _Failed."""
         start = self.clock()
         conn = self.connection(self.host, self.port, timeout=self.timeout)
         late = threading.Event()
@@ -337,7 +342,7 @@ class _Backend:
                 timer = threading.Timer(self.timeout, lambda: (late.set(), _shut(sock)))
                 timer.daemon = True
                 timer.start()
-                conn.request("POST", self.path, data, self.headers)
+                conn.request("POST", self.path, data, headers or self.headers)
             except OSError as e:
                 raise _Lost(_why(e)) from None
             try:
